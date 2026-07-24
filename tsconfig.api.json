@@ -15,5 +15,5 @@
     "esModuleInterop": true,
     "resolveJsonModule": true
   },
-  "include": ["api/**/*.ts", "src/db/**/*.ts", "src/utils/auth.ts"]
+  "include": ["api/**/*.ts", "src/db/**/*.ts", "src/utils/auth.ts", "src/handlers/**/*.ts"]
 }

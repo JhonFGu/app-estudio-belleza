@@ -1,4 +1,4 @@
-import { db } from '../src/db/index.js';
+import { db } from '../db/index.js';
 import {
   commissionLiquidations,
   commissionLiquidationItems,
@@ -9,7 +9,7 @@ import {
   products,
   collaborators,
   cashRegisters,
-} from '../src/db/schema.js';
+} from '../db/schema.js';
 import { eq, and, gte, lte, isNull, desc, sum, sql } from 'drizzle-orm';
 
 export default async function handler(req: any, res: any) {

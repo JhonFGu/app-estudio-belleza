@@ -1,7 +1,7 @@
-import { db } from '../../src/db/index.js';
-import { users } from '../../src/db/schema.js';
+import { db } from '../../db/index.js';
+import { users } from '../../db/schema.js';
 import { eq } from 'drizzle-orm';
-import { hashPassword } from '../../src/utils/auth.js';
+import { hashPassword } from '../../utils/auth.js';
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');

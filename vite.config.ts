@@ -2,11 +2,12 @@ import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
 import { VitePWA } from 'vite-plugin-pwa'
 import path from 'path'
-import { promises as fs } from 'fs'
 import url from 'url'
 
 // Custom Vite plugin to emulate Vercel Serverless Functions locally in Node.js
 function vercelDevPlugin() {
+  let cachedHandler: any = null;
+
   return {
     name: 'vercel-dev-emulator',
     configureServer(server: any) {
@@ -16,16 +17,13 @@ function vercelDevPlugin() {
 
         // Intercept all /api/ requests
         if (pathname.startsWith('/api/')) {
-          const routeName = pathname.replace('/api/', '').split('?')[0];
-          const apiFilePath = path.resolve(__dirname, `./api/${routeName}.ts`);
-
           try {
-            // Verify if api handler file exists
-            await fs.access(apiFilePath);
+            if (!cachedHandler) {
+              const module = await server.ssrLoadModule('./api/[...path].ts');
+              cachedHandler = module.default;
+            }
 
-            // Dynamically load the TypeScript API module using Vite's SSR module loader
-            const module = await server.ssrLoadModule(`./api/${routeName}.ts`);
-            const handler = module.default;
+            const handler = cachedHandler;
 
             if (typeof handler === 'function') {
               // Read request body stream for POST/PUT requests
@@ -44,12 +42,17 @@ function vercelDevPlugin() {
                 });
               }
 
+              // Parse path segments for catch-all route
+              const routePath = pathname.replace('/api/', '').split('?')[0];
+              const pathSegments = routePath.split('/').filter(Boolean);
+
               // Parse query parameters
-              const query: Record<string, string> = {};
+              const query: Record<string, string | string[]> = {};
               const queryParams = new URLSearchParams(parsedUrl.query || '');
               queryParams.forEach((value, key) => {
                 query[key] = value;
               });
+              query.path = pathSegments;
 
               // Mock VercelRequest
               const mockReq = {
@@ -83,7 +86,7 @@ function vercelDevPlugin() {
                 }
               };
 
-              // Execute the actual serverless function which queries Neon
+              // Execute the catch-all handler
               await handler(mockReq, mockRes);
               return;
             }

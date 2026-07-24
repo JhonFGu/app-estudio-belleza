@@ -1,5 +1,5 @@
-import { db } from '../src/db/index.js';
-import { loyaltyRewards } from '../src/db/schema.js';
+import { db } from '../db/index.js';
+import { loyaltyRewards } from '../db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 export default async function handler(req: any, res: any) {
