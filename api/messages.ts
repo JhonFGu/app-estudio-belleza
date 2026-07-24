@@ -1,5 +1,5 @@
-import { db } from '../src/db';
-import { messages, clients } from '../src/db/schema';
+import { db } from '../src/db/index.js';
+import { messages, clients } from '../src/db/schema.js';
 import { eq, and, asc, desc } from 'drizzle-orm';
 
 export default async function handler(req: any, res: any) {

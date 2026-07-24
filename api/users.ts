@@ -1,7 +1,7 @@
-import { db } from '../src/db';
-import { users } from '../src/db/schema';
+import { db } from '../src/db/index.js';
+import { users } from '../src/db/schema.js';
 import { eq, and, desc } from 'drizzle-orm';
-import { hashPassword } from '../src/utils/auth';
+import { hashPassword } from '../src/utils/auth.js';
 
 function stripPassword(user: any) {
   if (!user) return user;

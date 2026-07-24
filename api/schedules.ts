@@ -1,5 +1,5 @@
-import { db } from '../src/db';
-import { collaboratorSchedules } from '../src/db/schema';
+import { db } from '../src/db/index.js';
+import { collaboratorSchedules } from '../src/db/schema.js';
 import { eq, and } from 'drizzle-orm';
 
 export default async function handler(req: any, res: any) {
