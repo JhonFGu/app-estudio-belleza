@@ -227,6 +227,7 @@ export default async function handler(req: any, res: any) {
               break;
             default:
               logAction = '';
+              logDescription = '';
           }
 
           if (logAction) {
