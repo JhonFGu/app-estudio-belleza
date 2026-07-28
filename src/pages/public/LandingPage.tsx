@@ -36,7 +36,7 @@ export const LandingPage: React.FC = () => {
         <div className="absolute top-0 right-0 w-[600px] h-[600px] bg-app-mint-100/30 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
         <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-app-peach-100/20 rounded-full blur-3xl translate-y-1/3 -translate-x-1/4" />
 
-        <div className="relative max-w-6xl mx-auto px-6 py-20 lg:py-32">
+        <div className="relative max-w-6xl mx-auto px-6 pt-10 pb-16 lg:pt-16 lg:pb-20">
           <div className="text-center max-w-3xl mx-auto">
             <span className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-app-mint-100 text-app-mint text-xs font-bold uppercase tracking-wider mb-6">
               Software para independientes, micro y pequeñas empresas
@@ -73,7 +73,7 @@ export const LandingPage: React.FC = () => {
             </div>
 
             <p className="mt-6 text-xs text-app-gray-400 font-medium">
-              Creado por{' '}
+              Creado con ❤️ por{' '}
               <a
                 href="https://guacheta.digital"
                 target="_blank"
