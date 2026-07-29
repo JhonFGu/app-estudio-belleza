@@ -15,6 +15,7 @@ import {
   UserCheck,
   UserX,
   Search,
+  Filter,
   Receipt,
   ShoppingBag,
 } from 'lucide-react';
@@ -359,9 +360,9 @@ export const CalendarPage: React.FC = () => {
   return (
     <div className="space-y-5">
       {/* 1. FILTER & NAVIGATION BAR */}
-      <div className="bg-white p-4 rounded-3xl border border-app-gray-200 shadow-sm flex flex-col lg:flex-row items-center justify-between gap-4">
+      <div className="bg-white p-4 rounded-3xl border border-app-gray-200 shadow-sm flex flex-wrap items-center justify-between gap-3">
         
-        {/* Left Side Navigation & Date Picker */}
+        {/* Left Side: Navigation & Date Picker (always visible) */}
         <div className="flex flex-wrap items-center gap-2">
           <Button
             variant="secondary"
@@ -399,24 +400,68 @@ export const CalendarPage: React.FC = () => {
           </span>
         </div>
 
-        {/* Right Side Filters & View selectors */}
-        <div className="flex flex-wrap items-center gap-3">
-          <select
-            value={selectedColabFilter}
-            onChange={(e) => setSelectedColabFilter(e.target.value)}
-            className="px-3 py-2 border border-app-gray-200 rounded-xl text-xs bg-transparent font-bold outline-none text-app-text-secondary"
-          >
-            <option value="">Todos los Especialistas</option>
-            {collaborators.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
+        {/* Right Side: filters in dropdown (mobile) / inline (desktop) + Agendar button */}
+        <div className="flex items-center gap-2">
+          {/* Mobile: filters inside native <details> (auto-close on selection) */}
+          <details className="lg:hidden relative group">
+            <summary className="list-none cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-app-gray-50 border border-app-gray-200 rounded-xl text-xs font-bold text-app-text-secondary hover:bg-app-gray-100">
+              <Filter className="w-3.5 h-3.5" />
+              Filtros
+              {selectedColabFilter && <span className="w-1.5 h-1.5 rounded-full bg-app-mint" />}
+            </summary>
+            <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-app-gray-200 rounded-2xl shadow-lg p-3 min-w-[220px] space-y-3">
+              <div>
+                <span className="text-[10px] font-bold text-app-gray-500 uppercase block mb-1">Especialista</span>
+                <select
+                  value={selectedColabFilter}
+                  onChange={(e) => {
+                    setSelectedColabFilter(e.target.value);
+                    (e.target as HTMLSelectElement).blur();
+                    const detailsEl = (e.target as HTMLSelectElement).closest('details');
+                    if (detailsEl) detailsEl.removeAttribute('open');
+                  }}
+                  className="w-full px-3 py-2 border border-app-gray-200 rounded-xl text-xs bg-transparent font-bold outline-none text-app-text-secondary"
+                >
+                  <option value="">Todos los Especialistas</option>
+                  {collaborators.map(c => (
+                    <option key={c.id} value={c.id}>{c.name}</option>
+                  ))}
+                </select>
+              </div>
+              <div>
+                <span className="text-[10px] font-bold text-app-gray-500 uppercase block mb-1">Vista</span>
+                <Tabs
+                  tabs={viewTabs}
+                  activeTab={activeView}
+                  onChange={(id) => {
+                    setActiveView(id as 'day' | 'week' | 'month');
+                    const detailsEl = document.querySelector('.lg\\:hidden details[open]');
+                    if (detailsEl) detailsEl.removeAttribute('open');
+                  }}
+                />
+              </div>
+            </div>
+          </details>
 
-          <Tabs
-            tabs={viewTabs}
-            activeTab={activeView}
-            onChange={(id) => setActiveView(id as 'day' | 'week' | 'month')}
-          />
+          {/* Desktop: inline filters */}
+          <div className="hidden lg:flex flex-wrap items-center gap-3">
+            <select
+              value={selectedColabFilter}
+              onChange={(e) => setSelectedColabFilter(e.target.value)}
+              className="px-3 py-2 border border-app-gray-200 rounded-xl text-xs bg-transparent font-bold outline-none text-app-text-secondary"
+            >
+              <option value="">Todos los Especialistas</option>
+              {collaborators.map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+
+            <Tabs
+              tabs={viewTabs}
+              activeTab={activeView}
+              onChange={(id) => setActiveView(id as 'day' | 'week' | 'month')}
+            />
+          </div>
 
           <Button icon={<Plus />} onClick={() => openCreateModal()}>
             Agendar Cita

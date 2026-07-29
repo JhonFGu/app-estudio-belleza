@@ -218,14 +218,44 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               <Menu className="w-6 h-6" />
             </button>
             
-            <h2 className="text-lg font-extrabold text-app-text-primary font-sans tracking-tight">
+            <h2 className="text-lg font-extrabold text-app-text-primary font-sans tracking-tight whitespace-nowrap truncate min-w-0">
               {menuItems.find(item => item.id === currentTab)?.name || 'Dashboard'}
             </h2>
           </div>
 
           {/* SIMULATION HUB (MULTI-TENANT CONTROL PANEL) */}
           <div className="flex items-center gap-3">
-            <div className="flex items-center gap-1.5 bg-app-gray-50 px-3 py-1.5 rounded-xl border border-app-gray-200 shadow-sm">
+            {/* Mobile: tap-to-reveal company first word */}
+            <details className="sm:hidden relative group flex-shrink-0">
+              <summary className="flex items-center gap-1.5 bg-app-gray-50 px-3 py-1.5 rounded-xl border border-app-gray-200 shadow-sm list-none cursor-pointer whitespace-nowrap">
+                <Store className="w-3.5 h-3.5 text-app-mint shrink-0" />
+                <span className="text-[11px] font-bold text-app-text-primary">
+                  {currentTenant?.name?.split(' ')[0] || '?'}
+                </span>
+              </summary>
+              <div className="absolute right-0 top-full mt-1 bg-white border border-app-gray-200 rounded-xl shadow-lg z-50 min-w-[200px]">
+                <select
+                  value={currentTenant?.id || ''}
+                  onChange={(e) => {
+                    const tenant = tenants.find(t => t.id === e.target.value);
+                    if (tenant) {
+                      setCurrentTenant(tenant);
+                      (e.target as HTMLSelectElement).blur();
+                      const detailsEl = (e.target as HTMLSelectElement).closest('details');
+                      if (detailsEl) detailsEl.removeAttribute('open');
+                    }
+                  }}
+                  className="w-full px-3 py-2 text-[11px] font-bold text-app-text-primary outline-none cursor-pointer bg-transparent"
+                >
+                  {tenants.map(t => (
+                    <option key={t.id} value={t.id}>{t.name}</option>
+                  ))}
+                </select>
+              </div>
+            </details>
+
+            {/* Desktop: inline company selector */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-app-gray-50 px-3 py-1.5 rounded-xl border border-app-gray-200 shadow-sm">
               <Store className="w-3.5 h-3.5 text-app-mint shrink-0" />
               <select
                 value={currentTenant?.id || ''}
@@ -241,7 +271,39 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
               </select>
             </div>
 
-            <div className="flex items-center gap-1.5 bg-app-gray-50 px-3 py-1.5 rounded-xl border border-app-gray-200 shadow-sm">
+            {/* Mobile: tap-to-reveal initials (collapsed by default) */}
+            <details className="sm:hidden relative group flex-shrink-0">
+              <summary className="flex items-center gap-1.5 bg-app-gray-50 px-3 py-1.5 rounded-xl border border-app-gray-200 shadow-sm list-none cursor-pointer whitespace-nowrap">
+                <User className="w-3.5 h-3.5 text-app-mint shrink-0" />
+                <span className="text-[11px] font-bold text-app-text-primary">
+                  {currentUser?.name?.split(' ').slice(0, 2).map(n => n.charAt(0).toUpperCase()).join('') || '?'}
+                </span>
+              </summary>
+              <div className="absolute right-0 top-full mt-1 bg-white border border-app-gray-200 rounded-xl shadow-lg z-50 min-w-[200px]">
+                <select
+                  value={currentUser?.id || ''}
+                  onChange={(e) => {
+                    const user = users.find(u => u.id === e.target.value);
+                    if (user) {
+                      setCurrentUser(user);
+                      (e.target as HTMLSelectElement).blur();
+                      const detailsEl = (e.target as HTMLSelectElement).closest('details');
+                      if (detailsEl) detailsEl.removeAttribute('open');
+                    }
+                  }}
+                  className="w-full px-3 py-2 text-[11px] font-bold text-app-text-primary outline-none cursor-pointer bg-transparent"
+                >
+                  {users.map(u => (
+                    <option key={u.id} value={u.id}>
+                      {u.name} ({u.role === 'admin' ? 'Admin' : u.role === 'receptionist' ? 'Recep' : u.role === 'specialist' ? 'Espec' : u.role === 'accountant' ? 'Conta' : u.role})
+                    </option>
+                  ))}
+                </select>
+              </div>
+            </details>
+
+            {/* Desktop: inline select */}
+            <div className="hidden sm:flex items-center gap-1.5 bg-app-gray-50 px-3 py-1.5 rounded-xl border border-app-gray-200 shadow-sm">
               <User className="w-3.5 h-3.5 text-app-mint shrink-0" />
               <select
                 value={currentUser?.id || ''}
@@ -273,7 +335,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
             {/* Profile Widget */}
             <button
               onClick={() => setProfileModalOpen(true)}
-              className="flex items-center gap-2 hover:bg-app-gray-100 rounded-xl p-1.5 transition-colors cursor-pointer text-left"
+              className="flex items-center gap-2 hover:bg-app-gray-100 rounded-xl p-1.5 transition-colors cursor-pointer text-left flex-shrink-0"
               title="Ver Perfil"
             >
               <div className="w-9 h-9 rounded-full bg-app-mint-100 text-app-mint font-bold flex items-center justify-center text-xs shadow-sm">
@@ -299,7 +361,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
         </header>
 
         {/* 3. CONTENT AREA */}
-        <main className="flex-1 overflow-y-auto p-5 md:p-6 pb-24 md:pb-6 relative bg-app-bg">
+        <main className="flex-1 overflow-y-auto p-5 md:p-6 pb-5 md:pb-6 relative bg-app-bg">
           {isLoading ? (
             <div className="absolute inset-0 flex items-center justify-center bg-white bg-opacity-70">
               <div className="flex flex-col items-center gap-3">
@@ -312,36 +374,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           )}
         </main>
 
-        {/* 4. MOBILE BOTTOM NAV */}
-        <nav className="md:hidden fixed bottom-0 left-0 right-0 bg-white border-t border-app-gray-200 flex items-center justify-around h-16 px-2 z-20 shadow-lg">
-          {mobileShortcuts.map((item) => {
-            const Icon = item.icon;
-            const isActive = currentTab === item.id;
-            return (
-              <button
-                key={item.id}
-                onClick={() => setCurrentTab(item.id)}
-                className={`flex flex-col items-center justify-center flex-1 h-full py-1 ${
-                  isActive ? 'text-app-mint' : 'text-app-gray-500'
-                }`}
-              >
-                <Icon className="w-5 h-5 mb-0.5" />
-                <span className="text-[9px] font-bold">{item.name.split(' ')[0]}</span>
-              </button>
-            );
-          })}
-          
-          <button
-            onClick={() => setMobileMenuOpen(true)}
-            className="flex flex-col items-center justify-center flex-1 h-full py-1 text-app-gray-550"
-          >
-            <Menu className="w-5 h-5 mb-0.5" />
-            <span className="text-[9px] font-bold">Más</span>
-          </button>
-        </nav>
-      </div>
-
-      {/* 5. MOBILE DRAWER MENU */}
+        {/* 5. MOBILE DRAWER MENU */}
       {mobileMenuOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex justify-end md:hidden">
           <div className="absolute inset-0" onClick={() => setMobileMenuOpen(false)} />
@@ -385,6 +418,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 };

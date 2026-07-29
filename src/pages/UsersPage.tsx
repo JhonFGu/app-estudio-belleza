@@ -248,8 +248,7 @@ export const UsersPage: React.FC = () => {
                       : 'success';
 
                   return (
-                    <React.Fragment key={u.id}>
-                      <tr className="hover:bg-app-gray-50/70 transition-colors">
+                    <tr key={u.id} className="hover:bg-app-gray-50/70 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <button 
@@ -310,66 +309,67 @@ export const UsersPage: React.FC = () => {
                           )}
                         </td>
                       </tr>
-
-                      {/* Expandable Permissions Matrix */}
-                      {expandedUserId === u.id && localPermisos && (
-                        <tr className="bg-app-mint-50/30 border-y border-app-mint-100">
-                          <td colSpan={5} className="px-8 py-6">
-                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
-                              <div>
-                                <h4 className="font-bold text-app-text-primary text-base flex items-center gap-2">
-                                  <Sparkles className="w-4 h-4 text-app-mint" />
-                                  Matriz de Permisos por Módulo ({u.name})
-                                </h4>
-                                <p className="text-sm text-app-text-secondary mt-1">
-                                  Define qué acciones específicas puede realizar este colaborador en la clínica.
-                                </p>
-                              </div>
-
-                              <Button
-                                size="sm"
-                                icon={<Save />}
-                                loading={savingPermissions}
-                                onClick={() => handleSavePermissions(u.id)}
-                              >
-                                Guardar Permisos
-                              </Button>
-                            </div>
-
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                              {MODULOS_CLINICA.map(mod => (
-                                <div key={mod.id} className="bg-white p-4 rounded-xl shadow-xs border border-app-gray-200">
-                                  <h5 className="font-bold text-app-text-primary text-sm pb-2 border-b border-app-gray-100">
-                                    {mod.label}
-                                  </h5>
-                                  <div className="space-y-2.5 mt-3">
-                                    {ACCIONES.map(acc => (
-                                      <label key={acc} className="flex items-center justify-between group cursor-pointer">
-                                        <span className="text-sm font-medium text-app-text-secondary group-hover:text-app-text-primary">
-                                          {acc === 'leer' ? 'Ver / Consultar' : acc === 'crear' ? 'Crear Nuevos' : acc === 'editar' ? 'Modificar' : 'Eliminar'}
-                                        </span>
-                                        <input
-                                          type="checkbox"
-                                          checked={localPermisos[mod.id]?.[acc] || false}
-                                          onChange={() => handleTogglePermission(mod.id, acc)}
-                                          className="w-4 h-4 text-app-mint rounded border-app-gray-300 focus:ring-app-mint cursor-pointer accent-emerald-700"
-                                        />
-                                      </label>
-                                    ))}
-                                  </div>
-                                </div>
-                              ))}
-                            </div>
-                          </td>
-                        </tr>
-                      )}
-                    </React.Fragment>
                   );
                 })
               )}
             </tbody>
           </table>
         </div>
+
+        {/* Expandable Permissions Matrix (fuera de la tabla para evitar overflow-x en mobile) */}
+        {expandedUserId && localPermisos && (() => {
+          const u = filteredUsers.find(user => user.id === expandedUserId);
+          if (!u) return null;
+          return (
+            <div className="p-5 border-t-2 border-app-mint-100 bg-app-mint-50/30">
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+                <div>
+                  <h4 className="font-bold text-app-text-primary text-base flex items-center gap-2">
+                    <Sparkles className="w-4 h-4 text-app-mint" />
+                    Matriz de Permisos por Módulo ({u.name})
+                  </h4>
+                  <p className="text-sm text-app-text-secondary mt-1">
+                    Define qué acciones específicas puede realizar este colaborador en la clínica.
+                  </p>
+                </div>
+
+                <Button
+                  size="sm"
+                  icon={<Save />}
+                  loading={savingPermissions}
+                  onClick={() => handleSavePermissions(u.id)}
+                >
+                  Guardar Permisos
+                </Button>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                {MODULOS_CLINICA.map(mod => (
+                  <div key={mod.id} className="bg-white p-4 rounded-xl shadow-xs border border-app-gray-200">
+                    <h5 className="font-bold text-app-text-primary text-sm pb-2 border-b border-app-gray-100">
+                      {mod.label}
+                    </h5>
+                    <div className="space-y-2.5 mt-3">
+                      {ACCIONES.map(acc => (
+                        <label key={acc} className="flex items-center justify-between group cursor-pointer">
+                          <span className="text-sm font-medium text-app-text-secondary group-hover:text-app-text-primary">
+                            {acc === 'leer' ? 'Ver / Consultar' : acc === 'crear' ? 'Crear Nuevos' : acc === 'editar' ? 'Modificar' : 'Eliminar'}
+                          </span>
+                          <input
+                            type="checkbox"
+                            checked={localPermisos[mod.id]?.[acc] || false}
+                            onChange={() => handleTogglePermission(mod.id, acc)}
+                            className="w-4 h-4 text-app-mint rounded border-app-gray-300 focus:ring-app-mint cursor-pointer accent-emerald-700"
+                          />
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          );
+        })()}
       </Card>
 
       {/* Modal Invitar Miembro */}

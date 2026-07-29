@@ -107,7 +107,7 @@ export const HistoryPage: React.FC = () => {
     .filter(Boolean) || [];
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100vh-180px)] overflow-hidden">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:h-[calc(100vh-110px)] xl:overflow-hidden">
       {/* Printable Receipt Component Hidden in DOM */}
       {selectedTx && (
         <ReceiptTicket
@@ -126,7 +126,7 @@ export const HistoryPage: React.FC = () => {
       )}
 
       {/* 1. LEFT PANEL: INVOICES TABLE */}
-      <div className="xl:col-span-2 bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-full overflow-hidden">
+      <div className="xl:col-span-2 bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col xl:h-full h-[calc(100vh-180px)] xl:h-auto overflow-hidden">
         <div className="flex items-center justify-between mb-4 flex-shrink-0">
           <h3 className="text-sm font-extrabold text-app-text-primary font-sans flex items-center gap-2">
             <Receipt className="w-5 h-5 text-app-mint" />
@@ -143,8 +143,8 @@ export const HistoryPage: React.FC = () => {
         </div>
 
         {/* Directory Table */}
-        <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-          <table className="w-full text-left text-xs border-collapse">
+        <div className="flex-1 overflow-auto -mx-5 px-5">
+          <table className="w-full min-w-[640px] text-left text-xs border-collapse">
             <thead>
               <tr className="border-b border-app-gray-200 text-app-gray-500 font-bold bg-app-gray-50/50">
                 <th className="p-3.5 w-8 rounded-l-xl">
@@ -201,7 +201,7 @@ export const HistoryPage: React.FC = () => {
       </div>
 
       {/* 2. RIGHT PANEL: INVOICE DETAIL CARD */}
-      <div className="xl:col-span-1 bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-full overflow-y-auto space-y-4">
+      <div className="hidden xl:flex xl:col-span-1 bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex-col h-full overflow-y-auto space-y-4">
         {selectedTx ? (
           <>
             <div className="pb-4 border-b border-app-gray-100 text-left">
@@ -281,6 +281,81 @@ export const HistoryPage: React.FC = () => {
           />
         )}
       </div>
+
+      {/* Mobile: Detalle de factura como modal fullscreen */}
+      <Modal
+        isOpen={!!selectedTx}
+        onClose={() => setSelectedTx(null)}
+        title={`Ticket #${selectedTx?.id.slice(0, 8).toUpperCase() || ''}`}
+        icon={<Receipt />}
+        fullscreen
+      >
+        {selectedTx && (
+          <div className="space-y-4 text-left">
+            <div className="pb-4 border-b border-app-gray-100">
+              <Badge variant="success">Pagado / Facturado</Badge>
+              <p className="text-[10px] text-app-gray-500 mt-0.5">
+                {format(new Date(selectedTx.createdAt), "eeee, d 'de' MMMM yyyy", { locale: es })}
+              </p>
+            </div>
+
+            <div className="space-y-4 text-xs text-app-text-secondary">
+              <div className="flex items-center gap-3 bg-app-gray-50 p-3 rounded-2xl border border-app-gray-150">
+                <User className="w-4.5 h-4.5 text-app-gray-550" />
+                <div>
+                  <p className="text-[9px] text-app-gray-500 font-bold uppercase">Cliente Vinculado</p>
+                  <p className="font-bold text-app-text-primary">{selectedTx.client?.name || 'Cliente Walk-in'}</p>
+                </div>
+              </div>
+
+              <div>
+                <h5 className="text-[9px] font-bold text-app-gray-500 uppercase tracking-wider mb-2">Desglose de Tratamientos y Productos</h5>
+                <div className="space-y-2">
+                  {selectedTx.items?.map((item: any, idx: number) => (
+                    <div key={idx} className="p-3 bg-white border border-app-gray-200 rounded-xl shadow-sm space-y-1.5">
+                      <div className="flex justify-between items-center">
+                        <span className="font-bold text-app-text-primary">
+                          {item.service?.name || item.product?.name || 'Ítem'} (x{item.quantity || 1})
+                        </span>
+                        <span className="font-extrabold text-app-text-primary">{formatCOP(item.unitPrice)}</span>
+                      </div>
+                      <div className="flex justify-between items-center text-[10px] text-app-gray-500 font-semibold border-t border-app-gray-50 pt-1">
+                        <span>Por: {item.collaborator?.name || 'Sin especialista'}</span>
+                        <span className="text-app-mint font-bold">Comisión: {formatCOP(item.commissionPaid)}</span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="pt-3 border-t border-app-gray-100 space-y-2 text-xs font-semibold">
+                <div className="flex justify-between">
+                  <span>Subtotal:</span>
+                  <span className="text-app-text-primary">{formatCOP(parseFloat(selectedTx.amount) * 0.81)}</span>
+                </div>
+                <div className="flex justify-between text-app-gray-500">
+                  <span>IVA (19%):</span>
+                  <span>{formatCOP(parseFloat(selectedTx.amount) * 0.19)}</span>
+                </div>
+                <div className="flex justify-between text-sm font-extrabold border-t border-app-gray-100 pt-2 text-app-text-primary">
+                  <span>Total Facturado:</span>
+                  <span>{formatCOP(selectedTx.amount)}</span>
+                </div>
+              </div>
+            </div>
+
+            <div className="pt-3 border-t border-app-gray-200">
+              <Button
+                icon={<Eye />}
+                fullWidth
+                onClick={() => setIsTicketModalOpen(true)}
+              >
+                Ver Factura en Tirilla (80mm)
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* MODAL VER / PREVISUALIZAR TIRILLA TÉRMICA */}
       <Modal

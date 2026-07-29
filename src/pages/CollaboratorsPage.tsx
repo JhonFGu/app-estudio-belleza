@@ -605,7 +605,7 @@ export const CollaboratorsPage: React.FC = () => {
 
   // --- RENDERING LIST VIEW (FULL-WIDTH SPECIALISTS DIRECTORY) ---
   return (
-    <div className="bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-[calc(100vh-180px)] overflow-hidden">
+    <div className="bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-[calc(100vh-110px)] overflow-hidden">
       <div className="mb-4 flex-shrink-0">
         <PageHeader
           icon={<UserCheck />}
@@ -619,8 +619,8 @@ export const CollaboratorsPage: React.FC = () => {
       </div>
 
       {/* Directory Table */}
-      <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-        <table className="w-full text-left text-xs border-collapse">
+      <div className="flex-1 overflow-auto -mx-5 px-5">
+        <table className="w-full min-w-[640px] text-left text-xs border-collapse">
           <thead>
             <tr className="border-b border-app-gray-200 text-app-gray-500 font-bold bg-app-gray-50/50">
               <th className="p-3.5 w-8 rounded-l-xl">

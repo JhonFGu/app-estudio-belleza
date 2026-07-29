@@ -10,6 +10,7 @@ interface ModalProps {
   children: React.ReactNode;
   footer?: React.ReactNode;
   size?: 'sm' | 'md' | 'lg' | 'xl';
+  fullscreen?: boolean;
 }
 
 const SIZE_STYLES = {
@@ -28,6 +29,7 @@ export const Modal: React.FC<ModalProps> = ({
   children,
   footer,
   size = 'md',
+  fullscreen = false,
 }) => {
   if (!isOpen) return null;
 
@@ -35,7 +37,7 @@ export const Modal: React.FC<ModalProps> = ({
     <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
       <div className="absolute inset-0" onClick={onClose} />
       <div
-        className={`relative bg-white rounded-2xl shadow-2xl w-full ${SIZE_STYLES[size]} max-h-[90vh] flex flex-col overflow-hidden`}
+        className={`relative bg-white rounded-2xl shadow-2xl w-full ${fullscreen ? 'h-full sm:max-h-[90vh] sm:rounded-2xl' : `${SIZE_STYLES[size]} max-h-[90vh] rounded-2xl`} flex flex-col overflow-hidden`}
       >
         {/* Header */}
         <div className="flex items-center justify-between gap-3 px-6 py-4 border-b border-app-gray-100 flex-shrink-0">

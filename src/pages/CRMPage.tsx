@@ -16,6 +16,7 @@ import {
   Eye,
   ArrowLeft,
   MoreVertical,
+  Filter,
   Thermometer,
   Heart,
   Activity,
@@ -607,10 +608,10 @@ export const CRMPage: React.FC = () => {
           </div>
 
           {/* COLUMN 2: TABS + CONTENT (lg:col-span-3) */}
-          <div className="lg:col-span-3 space-y-6 flex flex-col justify-start">
+          <div className="lg:col-span-3 space-y-6 flex flex-col justify-start min-w-0">
             
             {/* Segmented Pill Toggle */}
-            <div className="flex items-center gap-1 bg-app-gray-100 rounded-xl p-1">
+            <div className="flex flex-wrap items-center gap-1 bg-app-gray-100 rounded-xl p-1">
               <button
                 onClick={() => setActiveDetailTab('ficha')}
                 className={`px-3.5 py-1.5 rounded-lg text-xs font-bold transition-all ${
@@ -1410,12 +1411,12 @@ export const CRMPage: React.FC = () => {
 
   // --- RENDERING LIST VIEW (FULL-WIDTH PATIENTS DIRECTORY) ---
   return (
-    <div className="bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-[calc(100vh-180px)] overflow-hidden">
+    <div className="bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-[calc(100vh-110px)] overflow-hidden">
       
-      {/* Search & Actions Header */}
-      <div className="flex flex-wrap items-center justify-between gap-3 mb-5 flex-shrink-0">
-        <div className="flex items-center gap-2 flex-1 min-w-[280px]">
-          <div className="relative flex-1">
+      {/* Search & Filters Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-5 flex-shrink-0">
+        <div className="flex flex-1 items-center gap-2 min-w-0">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-2.5 w-4 h-4 text-app-gray-500" />
             <input
               type="text"
@@ -1425,12 +1426,51 @@ export const CRMPage: React.FC = () => {
               className="w-full pl-9 pr-4 py-2 border border-app-gray-200 rounded-xl text-xs bg-app-bg outline-none focus:border-app-mint focus:bg-white transition-all font-semibold"
             />
           </div>
-          
-          {/* Dynamic Treatment Filter */}
+
+          {/* Mobile: filters in collapsible dropdown */}
+          <details className="sm:hidden relative group">
+            <summary className="list-none cursor-pointer flex items-center gap-1.5 px-3 py-2 bg-app-mint-50 border border-app-mint-100 rounded-xl text-xs font-bold text-app-mint whitespace-nowrap">
+              <Filter className="w-3.5 h-3.5" />
+              Filtros
+              {(selectedTreatmentFilter || selectedSpecialistFilter) && <span className="w-1.5 h-1.5 rounded-full bg-app-mint" />}
+            </summary>
+            <div className="absolute left-0 top-full mt-1 z-30 bg-white border border-app-gray-200 rounded-2xl shadow-lg p-3 min-w-[220px] space-y-2.5">
+              <select
+                value={selectedTreatmentFilter}
+                onChange={(e) => {
+                  setSelectedTreatmentFilter(e.target.value);
+                  const detailsEl = (e.target as HTMLSelectElement).closest('details');
+                  if (detailsEl) detailsEl.removeAttribute('open');
+                }}
+                className="w-full px-3 py-2 border border-app-gray-200 rounded-xl text-xs font-extrabold outline-none bg-white text-app-text-primary cursor-pointer"
+              >
+                <option value="">Todos los Tratamientos</option>
+                {services.map(s => (
+                  <option key={s.id} value={s.id}>{s.name}</option>
+                ))}
+              </select>
+              <select
+                value={selectedSpecialistFilter}
+                onChange={(e) => {
+                  setSelectedSpecialistFilter(e.target.value);
+                  const detailsEl = (e.target as HTMLSelectElement).closest('details');
+                  if (detailsEl) detailsEl.removeAttribute('open');
+                }}
+                className="w-full px-3 py-2 border border-app-gray-200 rounded-xl text-xs font-extrabold outline-none bg-white text-app-text-primary cursor-pointer"
+              >
+                <option value="">Todos los Especialistas</option>
+                {collaborators.map(c => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+          </details>
+
+          {/* Desktop: inline treatment filter */}
           <select
             value={selectedTreatmentFilter}
             onChange={(e) => setSelectedTreatmentFilter(e.target.value)}
-            className="px-3 py-2 bg-app-mint-50 border border-app-mint-250 text-app-mint text-xs font-extrabold rounded-xl outline-none cursor-pointer hover:bg-app-mint-100 transition-all"
+            className="hidden sm:block px-3 py-2 bg-app-mint-50 border border-app-mint-250 text-app-mint text-xs font-extrabold rounded-xl outline-none cursor-pointer hover:bg-app-mint-100 transition-all max-w-[180px] truncate"
           >
             <option value="">Todos los Tratamientos</option>
             {services.map(s => (
@@ -1438,11 +1478,11 @@ export const CRMPage: React.FC = () => {
             ))}
           </select>
 
-          {/* Dynamic Specialist Filter */}
+          {/* Desktop: inline specialist filter */}
           <select
             value={selectedSpecialistFilter}
             onChange={(e) => setSelectedSpecialistFilter(e.target.value)}
-            className="px-3 py-2 bg-app-mint-50 border border-app-mint-250 text-app-mint text-xs font-extrabold rounded-xl outline-none cursor-pointer hover:bg-app-mint-100 transition-all"
+            className="hidden sm:block px-3 py-2 bg-app-mint-50 border border-app-mint-250 text-app-mint text-xs font-extrabold rounded-xl outline-none cursor-pointer hover:bg-app-mint-100 transition-all max-w-[180px] truncate"
           >
             <option value="">Todos los Especialistas</option>
             {collaborators.map(c => (
@@ -1451,7 +1491,7 @@ export const CRMPage: React.FC = () => {
           </select>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           {/* Dynamic Date Picker Filter */}
           <div className="flex items-center gap-1.5 bg-white border border-app-gray-200 px-3 py-1.5 rounded-xl shadow-2xs">
             <Calendar className="w-3.5 h-3.5 text-app-mint" />
@@ -1481,7 +1521,7 @@ export const CRMPage: React.FC = () => {
                 setSelectedSpecialistFilter('');
                 setSelectedDateFilter('');
               }}
-              className="text-2xs font-bold text-app-pink hover:underline px-2"
+              className="text-2xs font-bold text-app-pink hover:underline px-2 whitespace-nowrap"
             >
               Limpiar Filtros
             </button>
@@ -1493,8 +1533,8 @@ export const CRMPage: React.FC = () => {
       </div>
 
       {/* Patients Table */}
-      <div className="flex-1 overflow-y-auto space-y-1.5 pr-1">
-        <table className="w-full text-left text-sm border-collapse">
+      <div className="flex-1 overflow-auto -mx-5 px-5">
+        <table className="w-full min-w-[640px] text-left text-sm border-collapse">
           <thead>
             <tr className="border-b border-app-gray-200 text-app-text-secondary font-extrabold uppercase tracking-wider text-2xs bg-app-gray-50/50">
               <th className="p-3 w-8 rounded-l-xl">

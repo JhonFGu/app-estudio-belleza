@@ -413,7 +413,7 @@ export const POSPage: React.FC = () => {
   const isRegisterOpen = !!activeRegisterData?.isOpen;
 
   return (
-    <div className="space-y-4 h-[calc(100vh-140px)] flex flex-col overflow-hidden">
+    <div className="space-y-4 lg:h-[calc(100vh-140px)] flex flex-col lg:overflow-hidden">
       {/* Componente de Tirilla Térmica Imprimible */}
       {lastSaleReceiptData && (
         <ReceiptTicket
@@ -469,7 +469,7 @@ export const POSPage: React.FC = () => {
           </div>
         </div>
 
-        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto justify-end">
+        <div className="flex items-center gap-2 flex-shrink-0 w-full sm:w-auto justify-center sm:justify-end">
           {isRegisterOpen ? (
             <button
               onClick={handleCloseCashRegister}
@@ -491,9 +491,9 @@ export const POSPage: React.FC = () => {
       </div>
 
       {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 overflow-hidden">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 flex-1 lg:overflow-hidden">
         {/* 1. LEFT PANEL: CATALOG WITH FILTER TABS (SERVICES + PRODUCTS) */}
-        <div className="lg:col-span-2 bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-full overflow-hidden">
+        <div className="lg:col-span-2 bg-white border border-app-gray-200 rounded-[28px] p-3 lg:p-5 shadow-sm flex flex-col lg:h-full h-[60vh] lg:h-auto overflow-hidden">
           <div className="mb-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
             <div>
               <h3 className="text-sm font-extrabold text-app-text-primary font-sans flex items-center gap-2">
@@ -505,8 +505,19 @@ export const POSPage: React.FC = () => {
               </p>
             </div>
 
-            {/* Catalog Filter Tabs */}
-            <div className="flex items-center gap-1 bg-app-gray-100 p-1 rounded-2xl border border-app-gray-200">
+            {/* Catalog Filter Tabs - Mobile: select dropdown */}
+            <select
+              value={catalogFilter}
+              onChange={(e) => setCatalogFilter(e.target.value as 'all' | 'services' | 'products')}
+              className="sm:hidden w-full px-3 py-2 border border-app-gray-200 rounded-xl text-xs font-bold outline-none bg-white text-app-text-primary cursor-pointer"
+            >
+              <option value="all">Todos ({services.length + products.length})</option>
+              <option value="services">Tratamientos ({services.length})</option>
+              <option value="products">Productos ({products.length})</option>
+            </select>
+
+            {/* Desktop: segmented buttons */}
+            <div className="hidden sm:flex items-center gap-1 bg-app-gray-100 p-1 rounded-2xl border border-app-gray-200">
               <button
                 onClick={() => setCatalogFilter('all')}
                 className={`px-3 py-1.5 rounded-xl text-2xs font-bold transition-all ${
@@ -554,7 +565,7 @@ export const POSPage: React.FC = () => {
           </div>
 
           {/* Catalog Grid */}
-          <div className="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3.5 pr-1">
+          <div className="flex-1 overflow-y-auto grid grid-cols-1 sm:grid-cols-2 gap-3.5 pr-1 min-h-0">
             {filteredCatalogItems.length === 0 ? (
               <div className="col-span-full">
                 <EmptyState
@@ -625,7 +636,7 @@ export const POSPage: React.FC = () => {
         </div>
 
         {/* 2. RIGHT PANEL: CURRENT TICKET CART */}
-        <div className="bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col h-full overflow-y-auto space-y-2 scrollbar-thin">
+        <div className="bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm flex flex-col lg:h-full h-[45vh] lg:h-auto overflow-y-auto space-y-2 scrollbar-thin">
           <div className="mb-2 flex items-center justify-between flex-shrink-0">
             <h3 className="text-sm font-extrabold text-app-text-primary font-sans flex items-center gap-2">
               <ShoppingBag className="w-5 h-5 text-app-mint" />
@@ -785,7 +796,7 @@ export const POSPage: React.FC = () => {
               <span className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider block mb-1.5">
                 Método de Pago
               </span>
-              <div className="grid grid-cols-5 gap-1.5">
+              <div className="grid grid-cols-3 lg:grid-cols-5 gap-1.5">
                 {[
                   { key: 'cash', label: 'Efectivo' },
                   { key: 'card', label: 'Tarjeta' },
@@ -802,7 +813,7 @@ export const POSPage: React.FC = () => {
                         setIsSplitModalOpen(true);
                       }
                     }}
-                    className={`py-2 rounded-xl border text-2xs font-bold uppercase tracking-wide transition-all ${
+                    className={`py-2 rounded-xl border text-2xs font-bold uppercase tracking-wide transition-all whitespace-nowrap ${
                       paymentMethod === key
                         ? 'bg-app-mint border-app-mint text-white shadow-sm'
                         : 'bg-white border-app-gray-200 text-app-text-secondary hover:bg-app-gray-50 hover:border-app-gray-300'

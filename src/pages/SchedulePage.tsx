@@ -191,7 +191,7 @@ export const SchedulePage: React.FC = () => {
           title="Disponibilidad de Horarios del Equipo"
           subtitle="Configure las horas de reserva y atención del staff médico-estético."
           actions={
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-3 w-full sm:w-auto justify-center sm:justify-end">
               <div className="flex items-center gap-1.5 bg-app-gray-50 px-2.5 py-1.5 rounded-xl border border-app-gray-200 text-xs font-bold text-app-text-primary">
                 <button
                   onClick={() => handleNavigateWeek(-1)}
@@ -302,7 +302,7 @@ export const SchedulePage: React.FC = () => {
                   </div>
 
                   <div className="flex items-center gap-3">
-                    <span className="text-[10px] font-bold px-3 py-1 rounded-full bg-white border border-app-gray-200 text-app-text-secondary">
+                    <span className="hidden sm:inline-flex text-[10px] font-bold px-3 py-1 rounded-full bg-white border border-app-gray-200 text-app-text-secondary">
                       {summary}
                     </span>
                     <button className="p-1 rounded-lg text-app-gray-500 hover:bg-white transition-all">

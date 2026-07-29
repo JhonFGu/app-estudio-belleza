@@ -953,19 +953,19 @@ export const FinancePage: React.FC = () => {
 
       {/* TAB 2: INGRESOS */}
       {activeTab === 'incomes' && (
-        <div className="bg-white rounded-[28px] border border-app-gray-200 p-6 shadow-sm space-y-4 animate-fade-in">
-          <div className="flex justify-between items-center border-b border-app-gray-100 pb-3">
+        <div className="bg-white rounded-[28px] border border-app-gray-200 p-5 shadow-sm space-y-4 animate-fade-in flex flex-col xl:h-[calc(100vh-110px)] h-[calc(100vh-180px)]">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-app-gray-100 pb-3 flex-shrink-0">
             <h4 className="text-sm font-extrabold text-app-text-primary font-sans flex items-center gap-2">
               <TrendingUp className="w-5 h-5 text-app-mint" />
               Historial de Ingresos y Facturación POS
             </h4>
-            <span className="text-xs font-bold text-app-mint bg-app-mint-100 px-3 py-1 rounded-full">
+            <span className="text-xs font-bold text-app-mint bg-app-mint-100 px-3 py-1 rounded-full whitespace-nowrap">
               Total Ingresos: {formatCOP(metrics.totalSales)}
             </span>
           </div>
 
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
+          <div className="flex-1 overflow-auto -mx-5 px-5">
+            <table className="w-full min-w-[640px] text-left text-xs border-collapse">
               <thead>
                 <tr className="border-b border-app-gray-200 text-app-gray-500 font-bold bg-app-gray-50/50">
                   <th className="p-3 rounded-l-xl">Fecha</th>

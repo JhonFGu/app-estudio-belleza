@@ -67,11 +67,11 @@ export const ActivityLogSection: React.FC<ActivityLogSectionProps> = ({
 
   return (
     <div className="bg-white border border-app-gray-200 rounded-[28px] p-5 shadow-sm space-y-4">
-      <div className="flex justify-between items-center border-b border-app-gray-100 pb-2">
+      <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 border-b border-app-gray-100 pb-2">
         <h5 className="text-sm font-black text-app-text-primary uppercase tracking-wider">
           Historial de Actividades
         </h5>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 flex-wrap">
           <div className="flex items-center gap-1 bg-app-gray-50 rounded-lg px-2.5 py-1.5 border border-app-gray-150">
             <Filter className="w-3.5 h-3.5 text-app-gray-500" />
             <select
@@ -86,7 +86,7 @@ export const ActivityLogSection: React.FC<ActivityLogSectionProps> = ({
           </div>
           <button
             onClick={onRegisterClick}
-            className="flex items-center gap-1.5 px-3 py-2 bg-app-mint hover:bg-app-mint-600 text-white rounded-lg text-xs font-bold transition-all"
+            className="flex items-center gap-1.5 px-3 py-2 bg-app-mint hover:bg-app-mint-600 text-white rounded-lg text-xs font-bold transition-all whitespace-nowrap"
           >
             <Plus className="w-3.5 h-3.5" />
             Registrar

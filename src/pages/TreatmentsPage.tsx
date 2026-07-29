@@ -145,9 +145,9 @@ export const TreatmentsPage: React.FC = () => {
   }
 
   return (
-    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 h-[calc(100vh-180px)] overflow-hidden">
+    <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 xl:h-[calc(100vh-110px)] xl:overflow-hidden">
       {/* 1. LEFT PANEL: CATALOG TABLE */}
-      <Card padding={false} className="xl:col-span-2 flex flex-col h-full overflow-hidden">
+      <Card padding={false} className="xl:col-span-2 flex flex-col xl:h-full h-[calc(100vh-180px)] xl:h-auto overflow-hidden">
         <CardHeader
           icon={<Sparkles />}
           title="Menú de Tratamientos"
@@ -160,7 +160,7 @@ export const TreatmentsPage: React.FC = () => {
         />
 
         {/* Directory Table */}
-        <div className="flex-1 overflow-y-auto pr-1">
+        <div className="flex-1 overflow-auto -mx-5 px-5">
           {services.length === 0 ? (
             <EmptyState
               icon={<Sparkles />}
@@ -173,7 +173,7 @@ export const TreatmentsPage: React.FC = () => {
               }
             />
           ) : (
-            <table className="w-full text-left text-sm border-collapse">
+            <table className="w-full min-w-[640px] text-left text-sm border-collapse">
               <thead>
                 <tr className="border-b border-app-gray-200 text-app-text-secondary bg-app-gray-50/50 text-2xs font-extrabold uppercase tracking-wider">
                   <th className="p-3.5">Nombre del Tratamiento</th>
@@ -221,7 +221,7 @@ export const TreatmentsPage: React.FC = () => {
       </Card>
 
       {/* 2. RIGHT PANEL: TREATMENT DETAILS CARD */}
-      <Card padding={false} className="xl:col-span-1 flex flex-col h-full overflow-y-auto">
+      <Card padding={false} className="hidden xl:flex xl:col-span-1 flex-col h-full overflow-y-auto">
         {selectedService ? (
           <div className="p-5 flex flex-col h-full space-y-4">
             <div className="pb-4 border-b border-app-gray-100">
@@ -287,6 +287,68 @@ export const TreatmentsPage: React.FC = () => {
           />
         )}
       </Card>
+
+      {/* Mobile: Detalle del tratamiento como modal fullscreen */}
+      <Modal
+        isOpen={!!selectedService}
+        onClose={() => setSelectedService(null)}
+        title={selectedService?.name || 'Detalle del Tratamiento'}
+        icon={<Sparkles />}
+        fullscreen
+      >
+        {selectedService && (
+          <div className="space-y-4">
+            <span className="text-2xs text-app-mint font-extrabold uppercase tracking-wider block">Procedimiento Catálogo</span>
+
+            <div>
+              <h5 className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" />
+                Descripción del Tratamiento
+              </h5>
+              <p className="text-sm text-app-text-secondary bg-app-gray-50 border border-app-gray-100 p-3.5 rounded-2xl leading-relaxed italic">
+                {selectedService.description ? `"${selectedService.description}"` : 'No registra descripción técnica.'}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-3">
+              <div className="p-3.5 bg-app-gray-50 rounded-2xl border border-app-gray-100">
+                <span className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider block mb-1">Duración</span>
+                <span className="text-sm font-extrabold text-app-text-primary flex items-center gap-1.5">
+                  <Clock className="w-4 h-4 text-app-mint" />
+                  {selectedService.duration} min
+                </span>
+              </div>
+              <div className="p-3.5 bg-app-gray-50 rounded-2xl border border-app-gray-100">
+                <span className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider block mb-1">Precio Fijo</span>
+                <span className="text-sm font-extrabold text-app-text-primary flex items-center gap-1 font-sans">
+                  <DollarSign className="w-4 h-4 text-app-pink" />
+                  {formatCOP(selectedService.price)}
+                </span>
+              </div>
+            </div>
+
+            <div className="pt-4 flex gap-2 border-t border-app-gray-100">
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={<Pencil />}
+                fullWidth
+                onClick={() => openEditModal(selectedService)}
+              >
+                Editar Parámetros
+              </Button>
+              <Button
+                variant="danger"
+                size="sm"
+                icon={<Trash2 />}
+                onClick={() => handleDelete(selectedService.id)}
+              >
+                Eliminar
+              </Button>
+            </div>
+          </div>
+        )}
+      </Modal>
 
       {/* CREATE / EDIT MODAL */}
       <Modal
