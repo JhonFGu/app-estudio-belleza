@@ -18,7 +18,7 @@ import {
   Trash2,
   Plus,
 } from 'lucide-react';
-import { Button, Card, Input, Select, Badge, PageHeader, Modal } from '../components/ui';
+import { Button, Card, Input, Select, Badge, PageHeader, Modal, Tabs } from '../components/ui';
 import { formatCOP } from '../utils/format';
 
 const MONEDAS = ['COP', 'USD', 'EUR', 'MXN', 'ARS', 'CLP', 'PEN'];
@@ -64,6 +64,7 @@ export const CompanySettingsPage: React.FC = () => {
   const [formData, setFormData] = useState<Partial<Tenant>>({});
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'company' | 'loyalty'>('company');
 
   const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig>({
     pointsPerCurrencyUnit: 1,
@@ -93,6 +94,11 @@ export const CompanySettingsPage: React.FC = () => {
       loadLoyaltyData();
     }
   }, [currentTenant]);
+
+  const tabs = [
+    { id: 'company', label: 'Datos de la Empresa', icon: Building2 },
+    { id: 'loyalty', label: 'Sistema de Fidelización', icon: Star },
+  ] as const;
 
   const loadLoyaltyData = async () => {
     if (!currentTenant) return;
@@ -277,9 +283,18 @@ export const CompanySettingsPage: React.FC = () => {
       <PageHeader
         icon={<Building2 />}
         title="Configuración de Empresa"
-        subtitle="Datos básicos de tu negocio: información fiscal, contacto, ubicación y preferencias regionales."
+        subtitle="Administra los datos de tu negocio, sistema de fidelización y preferencias regionales."
       />
 
+      <div className="bg-white border border-app-gray-200 rounded-2xl p-2.5 shadow-sm">
+        <Tabs
+          tabs={tabs.map((t) => ({ id: t.id, label: t.label, icon: <t.icon /> }))}
+          activeTab={activeTab}
+          onChange={(id) => setActiveTab(id as any)}
+        />
+      </div>
+
+      {activeTab === 'company' && (
       <form onSubmit={handleSubmit}>
         <Card>
           <div className="p-5 sm:p-6 border-b border-app-gray-100 bg-app-mint-50/30 flex items-center gap-4">
@@ -406,7 +421,9 @@ export const CompanySettingsPage: React.FC = () => {
           </div>
         </Card>
       </form>
+      )}
 
+      {activeTab === 'loyalty' && (
       <Card>
         <div className="p-5 sm:p-6 border-b border-app-gray-100 bg-amber-50/30 flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
@@ -686,6 +703,7 @@ export const CompanySettingsPage: React.FC = () => {
           </button>
         </div>
       </Modal>
+      )}
     </div>
   );
 };
