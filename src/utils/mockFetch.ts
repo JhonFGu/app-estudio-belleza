@@ -1,7 +1,7 @@
 import { addDays, subDays, setHours, setMinutes } from 'date-fns';
 
 // In-memory/LocalStorage database to simulate Neon.tech on client-side
-const SEED_KEY = 'aura_mock_db_seeded_v4';
+const SEED_KEY = 'aura_mock_db_seeded_v5';
 
 export function setupMockFetch() {
   // Check if we already seeded the local storage
@@ -1177,6 +1177,74 @@ export function setupMockFetch() {
         }
       }
 
+      // --- PRODUCTS ENDPOINT ---
+      if (path === '/api/products') {
+        if (!tenantId) return createMockResponse({ error: 'Missing tenant header' }, 400);
+        let list = getTable('products').filter((p: any) => p.tenantId === tenantId);
+
+        if (method === 'GET') {
+          if (queryId) {
+            const prod = list.find((p: any) => p.id === queryId);
+            return prod ? createMockResponse(prod, 200) : createMockResponse({ error: 'Producto no encontrado.' }, 404);
+          }
+          return createMockResponse(list, 200);
+        }
+
+        if (method === 'POST') {
+          if (!bodyData.name || bodyData.price === undefined) {
+            return createMockResponse({ error: 'El nombre y el precio son obligatorios.' }, 400);
+          }
+          const all = getTable('products');
+          const newProduct = {
+            id: `p-${Date.now()}`,
+            tenantId,
+            name: (bodyData.name || '').trim(),
+            description: bodyData.description?.trim() || null,
+            sku: bodyData.sku?.trim() || null,
+            price: (parseFloat(bodyData.price) || 0).toFixed(2),
+            cost: (parseFloat(bodyData.cost) || 0).toFixed(2),
+            stock: parseInt(bodyData.stock, 10) || 0,
+            minStock: parseInt(bodyData.minStock, 10) || 2,
+            category: bodyData.category?.trim() || 'General',
+            active: true,
+            createdAt: new Date().toISOString()
+          };
+          all.push(newProduct);
+          setTable('products', all);
+          return createMockResponse(newProduct, 201);
+        }
+
+        if (method === 'PUT' && queryId) {
+          const all = getTable('products');
+          const idx = all.findIndex((p: any) => p.id === queryId && p.tenantId === tenantId);
+          if (idx === -1) return createMockResponse({ error: 'Producto no encontrado.' }, 404);
+
+          const prod = { ...all[idx] };
+          if (bodyData.name !== undefined) prod.name = bodyData.name.trim();
+          if (bodyData.description !== undefined) prod.description = bodyData.description?.trim() || null;
+          if (bodyData.sku !== undefined) prod.sku = bodyData.sku?.trim() || null;
+          if (bodyData.price !== undefined) prod.price = (parseFloat(bodyData.price) || 0).toFixed(2);
+          if (bodyData.cost !== undefined) prod.cost = (parseFloat(bodyData.cost) || 0).toFixed(2);
+          if (bodyData.stock !== undefined) prod.stock = parseInt(bodyData.stock, 10) || 0;
+          if (bodyData.minStock !== undefined) prod.minStock = parseInt(bodyData.minStock, 10) || 0;
+          if (bodyData.category !== undefined) prod.category = bodyData.category?.trim() || 'General';
+          if (bodyData.active !== undefined) prod.active = Boolean(bodyData.active);
+
+          all[idx] = prod;
+          setTable('products', all);
+          return createMockResponse(prod, 200);
+        }
+
+        if (method === 'DELETE' && queryId) {
+          const all = getTable('products');
+          const idx = all.findIndex((p: any) => p.id === queryId && p.tenantId === tenantId);
+          if (idx === -1) return createMockResponse({ error: 'Producto no encontrado.' }, 404);
+          all[idx] = { ...all[idx], active: false };
+          setTable('products', all);
+          return createMockResponse(all[idx], 200);
+        }
+      }
+
       // Default fallback
       return createMockResponse({ error: 'Endpoint mock not found' }, 404);
     } catch (e) {
@@ -1296,6 +1364,16 @@ function seedLocalStorage() {
     { id: 's-corte', tenantId: tenants[1].id, name: 'Corte de Dama & Estilizado', description: 'Corte de puntas y ondas glam.', duration: 60, price: '50.00', active: true, createdAt: new Date().toISOString() },
     { id: 's-peinado', tenantId: tenants[1].id, name: 'Peinado Novia Profesional', description: 'Peinados de gala.', duration: 90, price: '90.00', active: true, createdAt: new Date().toISOString() },
     { id: 's-keratina', tenantId: tenants[1].id, name: 'Keratina Orgánica Orgánica', description: 'Alisado termomotivado sin formol.', duration: 120, price: '130.00', active: true, createdAt: new Date().toISOString() }
+  ];
+
+  // 4a. Products
+  const products = [
+    { id: 'p-shampoo', tenantId: tenants[0].id, name: 'Shampoo Hidratante 500ml', description: 'Shampoo profesional para cabello seco.', sku: 'SHA-500', price: '35.00', cost: '18.00', stock: 12, minStock: 3, category: 'Cuidado Capilar', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-mascarilla', tenantId: tenants[0].id, name: 'Mascarilla Facial de Colágeno', description: 'Mascarilla hidratante con colágeno.', sku: 'MFC-001', price: '25.00', cost: '12.00', stock: 20, minStock: 5, category: 'Faciales', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-acido', tenantId: tenants[0].id, name: 'Sérum Ácido Hialurónico 30ml', description: 'Sérum antiedad con ácido hialurónico puro.', sku: 'SAH-30', price: '55.00', cost: '28.00', stock: 8, minStock: 2, category: 'Antiedad', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-balsamo', tenantId: tenants[1].id, name: 'Bálsamo Reparador Leave-in', description: 'Acondicionador sin enjuague para cabello dañado.', sku: 'BLR-250', price: '28.00', cost: '14.00', stock: 15, minStock: 3, category: 'Cuidado Capilar', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-spray', tenantId: tenants[1].id, name: 'Spray Termoprotector 200ml', description: 'Protector térmico previo al planchado.', sku: 'STP-200', price: '32.00', cost: '15.00', stock: 10, minStock: 2, category: 'Styling', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-aceite', tenantId: tenants[1].id, name: 'Aceite Capilar Argán 100ml', description: 'Aceite nutritivo de argán para brillo.', sku: 'ACA-100', price: '38.00', cost: '19.00', stock: 9, minStock: 2, category: 'Nutrición', active: true, createdAt: new Date().toISOString() },
   ];
 
   // 4b. Commission Rules
@@ -1475,6 +1553,17 @@ function seedLocalStorage() {
   localStorage.setItem('aura_commission_liquidation_items', JSON.stringify(commissionLiquidationItems));
   localStorage.setItem('aura_collaborator_schedules', JSON.stringify(schedules));
   localStorage.setItem('aura_messages', JSON.stringify(messages));
+  localStorage.setItem('aura_products', JSON.stringify(products));
+
+  // Auto-repair: si tablas criticas quedaron vacias por corrupcion anterior, forzar re-siembra
+  const criticalTables = ['aura_tenants', 'aura_users', 'aura_services', 'aura_products'];
+  criticalTables.forEach(key => {
+    const value = localStorage.getItem(key);
+    if (!value || value === '[]' || value === 'null') {
+      localStorage.removeItem(key);
+      localStorage.removeItem(SEED_KEY);
+    }
+  });
   
   localStorage.setItem(SEED_KEY, 'true');
   console.log('✅ Client-Side Mock Database seeded successfully!');
