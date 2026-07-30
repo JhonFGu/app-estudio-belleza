@@ -128,8 +128,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
                     <div className="w-8 h-8 rounded-xl bg-app-mint-100 text-app-mint flex items-center justify-center flex-shrink-0">
                       <Sparkle className="w-4 h-4 fill-current" />
                     </div>
-                    <h1 className="text-[17px] font-extrabold tracking-tight text-app-text-primary font-sans flex items-center gap-0.5">
-                      byutie <span className="text-[9px] text-app-mint font-bold px-1 py-0.2 bg-app-mint-100 rounded-md">Aura</span>
+                    <h1 className="text-[17px] font-extrabold tracking-tight text-app-text-primary font-sans">
+                      Miesbe
                     </h1>
                   </div>
                 )}

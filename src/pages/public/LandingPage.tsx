@@ -43,8 +43,8 @@ export const LandingPage: React.FC = () => {
             </span>
 
             <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black text-app-text-primary tracking-tight leading-tight font-sans">
-              Administra tu estudio de belleza,{' '}
-              <span className="text-app-mint">todo en un solo lugar</span>
+              Miesbe{' '}
+              <span className="text-app-mint">Administra facil tu estudio de belleza</span>
             </h1>
 
             <p className="mt-6 text-lg text-app-text-secondary font-medium max-w-2xl mx-auto leading-relaxed">
