@@ -36,10 +36,16 @@ export const UsersPage: React.FC = () => {
   const [expandedUserId, setExpandedUserId] = useState<string | null>(null);
   const [localPermisos, setLocalPermisos] = useState<any>(null);
   const [savingPermissions, setSavingPermissions] = useState(false);
+  const [usersPage, setUsersPage] = useState(1);
+  const USERS_PER_PAGE = 4;
 
   useEffect(() => {
     fetchUsers();
   }, [currentTenant]);
+
+  useEffect(() => {
+    setUsersPage(1);
+  }, [searchTerm]);
 
   const fetchUsers = async () => {
     if (!currentTenant) return;
@@ -229,7 +235,7 @@ export const UsersPage: React.FC = () => {
                   </td>
                 </tr>
               ) : (
-                filteredUsers.map((u) => {
+                paginatedUsers.map((u) => {
                   const roleLabel = u.role === 'admin'
                     ? 'Administrador'
                     : u.role === 'receptionist'
@@ -247,7 +253,10 @@ export const UsersPage: React.FC = () => {
                       ? 'warning'
                       : 'success';
 
-                  return (
+  const paginatedUsers = filteredUsers.slice(0, usersPage * USERS_PER_PAGE);
+  const hasMoreUsers = paginatedUsers.length < filteredUsers.length;
+
+  return (
                     <tr key={u.id} className="hover:bg-app-gray-50/70 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
@@ -315,6 +324,17 @@ export const UsersPage: React.FC = () => {
             </tbody>
           </table>
         </div>
+
+        {hasMoreUsers && (
+          <div className="px-5 pb-5 pt-2 flex justify-center">
+            <button
+              onClick={() => setUsersPage(p => p + 1)}
+              className="px-5 py-2.5 bg-app-mint hover:bg-app-mint-600 text-white rounded-xl text-sm font-bold transition-all shadow-sm"
+            >
+              Ver más ({filteredUsers.length - paginatedUsers.length} restantes)
+            </button>
+          </div>
+        )}
 
         {/* Expandable Permissions Matrix (fuera de la tabla para evitar overflow-x en mobile) */}
         {expandedUserId && localPermisos && (() => {

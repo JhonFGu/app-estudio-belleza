@@ -18,6 +18,7 @@ export const TreatmentsPage: React.FC = () => {
   const [services, setServices] = useState<any[]>([]);
   const [selectedService, setSelectedService] = useState<any>(null);
   const [loading, setLoading] = useState(true);
+  const [showDetailModal, setShowDetailModal] = useState(false);
 
   // Modals / Form State
   const [showModal, setShowModal] = useState(false);
@@ -188,7 +189,7 @@ export const TreatmentsPage: React.FC = () => {
                   return (
                     <tr
                       key={service.id}
-                      onClick={() => setSelectedService(service)}
+                      onClick={() => { setSelectedService(service); setShowDetailModal(true); }}
                       className={`border-b border-app-gray-100 hover:bg-app-gray-50/50 cursor-pointer transition-colors ${
                         isSelected ? 'bg-app-mint-50/40' : ''
                       }`}
@@ -290,8 +291,8 @@ export const TreatmentsPage: React.FC = () => {
 
       {/* Mobile: Detalle del tratamiento como modal fullscreen */}
       <Modal
-        isOpen={!!selectedService}
-        onClose={() => setSelectedService(null)}
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
         title={selectedService?.name || 'Detalle del Tratamiento'}
         icon={<Sparkles />}
         fullscreen

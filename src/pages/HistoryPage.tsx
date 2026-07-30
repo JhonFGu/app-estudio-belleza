@@ -18,6 +18,7 @@ export const HistoryPage: React.FC = () => {
 
   const [transactions, setTransactions] = useState<any[]>([]);
   const [selectedTx, setSelectedTx] = useState<any>(null);
+  const [showDetailModal, setShowDetailModal] = useState(false);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
 
@@ -163,7 +164,7 @@ export const HistoryPage: React.FC = () => {
                 return (
                   <tr
                     key={tx.id}
-                    onClick={() => setSelectedTx(tx)}
+                    onClick={() => { setSelectedTx(tx); setShowDetailModal(true); }}
                     className={`border-b border-app-gray-50 hover:bg-app-gray-50/50 cursor-pointer transition-colors ${
                       isSelected ? 'bg-app-mint-50/30' : ''
                     }`}
@@ -284,8 +285,8 @@ export const HistoryPage: React.FC = () => {
 
       {/* Mobile: Detalle de factura como modal fullscreen */}
       <Modal
-        isOpen={!!selectedTx}
-        onClose={() => setSelectedTx(null)}
+        isOpen={showDetailModal}
+        onClose={() => setShowDetailModal(false)}
         title={`Ticket #${selectedTx?.id.slice(0, 8).toUpperCase() || ''}`}
         icon={<Receipt />}
         fullscreen
