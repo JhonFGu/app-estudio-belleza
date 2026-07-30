@@ -1371,24 +1371,24 @@ function seedLocalStorage() {
 
   // 4. Services
   const services = [
-    { id: 's-facial', tenantId: tenants[0].id, name: 'Facial Rejuvenecedor Hialurónico', description: 'Limpieza profunda con ácido hialurónico.', duration: 60, price: '85.00', active: true, createdAt: new Date().toISOString() },
-    { id: 's-masaje', tenantId: tenants[0].id, name: 'Masaje Relajante Piedras Volcánicas', description: 'Terapia relajante corporal.', duration: 75, price: '120.00', active: true, createdAt: new Date().toISOString() },
-    { id: 's-manicura', tenantId: tenants[0].id, name: 'Manicura Rusa Express Semi', description: 'Cuidado de uñas semipermanente.', duration: 45, price: '45.00', active: true, createdAt: new Date().toISOString() },
-    { id: 's-pies', tenantId: tenants[0].id, name: 'Spa de Pies Hidratante', description: 'Exfoliación e hidratación.', duration: 50, price: '55.00', active: true, createdAt: new Date().toISOString() },
-    { id: 's-balayage', tenantId: tenants[1].id, name: 'Balayage Blonde Premium', description: 'Aclaración con técnica a mano alzada.', duration: 180, price: '180.00', active: true, createdAt: new Date().toISOString() },
-    { id: 's-corte', tenantId: tenants[1].id, name: 'Corte de Dama & Estilizado', description: 'Corte de puntas y ondas glam.', duration: 60, price: '50.00', active: true, createdAt: new Date().toISOString() },
-    { id: 's-peinado', tenantId: tenants[1].id, name: 'Peinado Novia Profesional', description: 'Peinados de gala.', duration: 90, price: '90.00', active: true, createdAt: new Date().toISOString() },
-    { id: 's-keratina', tenantId: tenants[1].id, name: 'Keratina Orgánica Orgánica', description: 'Alisado termomotivado sin formol.', duration: 120, price: '130.00', active: true, createdAt: new Date().toISOString() }
+    { id: 's-facial', tenantId: tenants[0].id, name: 'Facial Rejuvenecedor Hialurónico', description: 'Limpieza profunda con ácido hialurónico.', duration: 60, price: '85000.00', active: true, createdAt: new Date().toISOString() },
+    { id: 's-masaje', tenantId: tenants[0].id, name: 'Masaje Relajante Piedras Volcánicas', description: 'Terapia relajante corporal.', duration: 75, price: '120000.00', active: true, createdAt: new Date().toISOString() },
+    { id: 's-manicura', tenantId: tenants[0].id, name: 'Manicura Rusa Express Semi', description: 'Cuidado de uñas semipermanente.', duration: 45, price: '45000.00', active: true, createdAt: new Date().toISOString() },
+    { id: 's-pies', tenantId: tenants[0].id, name: 'Spa de Pies Hidratante', description: 'Exfoliación e hidratación.', duration: 50, price: '55000.00', active: true, createdAt: new Date().toISOString() },
+    { id: 's-balayage', tenantId: tenants[1].id, name: 'Balayage Blonde Premium', description: 'Aclaración con técnica a mano alzada.', duration: 180, price: '180000.00', active: true, createdAt: new Date().toISOString() },
+    { id: 's-corte', tenantId: tenants[1].id, name: 'Corte de Dama & Estilizado', description: 'Corte de puntas y ondas glam.', duration: 60, price: '50000.00', active: true, createdAt: new Date().toISOString() },
+    { id: 's-peinado', tenantId: tenants[1].id, name: 'Peinado Novia Profesional', description: 'Peinados de gala.', duration: 90, price: '90000.00', active: true, createdAt: new Date().toISOString() },
+    { id: 's-keratina', tenantId: tenants[1].id, name: 'Keratina Orgánica Orgánica', description: 'Alisado termomotivado sin formol.', duration: 120, price: '130000.00', active: true, createdAt: new Date().toISOString() }
   ];
 
   // 4a. Products
   const products = [
-    { id: 'p-shampoo', tenantId: tenants[0].id, name: 'Shampoo Hidratante 500ml', description: 'Shampoo profesional para cabello seco.', sku: 'SHA-500', price: '35.00', cost: '18.00', stock: 12, minStock: 3, category: 'Cuidado Capilar', active: true, createdAt: new Date().toISOString() },
-    { id: 'p-mascarilla', tenantId: tenants[0].id, name: 'Mascarilla Facial de Colágeno', description: 'Mascarilla hidratante con colágeno.', sku: 'MFC-001', price: '25.00', cost: '12.00', stock: 20, minStock: 5, category: 'Faciales', active: true, createdAt: new Date().toISOString() },
-    { id: 'p-acido', tenantId: tenants[0].id, name: 'Sérum Ácido Hialurónico 30ml', description: 'Sérum antiedad con ácido hialurónico puro.', sku: 'SAH-30', price: '55.00', cost: '28.00', stock: 8, minStock: 2, category: 'Antiedad', active: true, createdAt: new Date().toISOString() },
-    { id: 'p-balsamo', tenantId: tenants[1].id, name: 'Bálsamo Reparador Leave-in', description: 'Acondicionador sin enjuague para cabello dañado.', sku: 'BLR-250', price: '28.00', cost: '14.00', stock: 15, minStock: 3, category: 'Cuidado Capilar', active: true, createdAt: new Date().toISOString() },
-    { id: 'p-spray', tenantId: tenants[1].id, name: 'Spray Termoprotector 200ml', description: 'Protector térmico previo al planchado.', sku: 'STP-200', price: '32.00', cost: '15.00', stock: 10, minStock: 2, category: 'Styling', active: true, createdAt: new Date().toISOString() },
-    { id: 'p-aceite', tenantId: tenants[1].id, name: 'Aceite Capilar Argán 100ml', description: 'Aceite nutritivo de argán para brillo.', sku: 'ACA-100', price: '38.00', cost: '19.00', stock: 9, minStock: 2, category: 'Nutrición', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-shampoo', tenantId: tenants[0].id, name: 'Shampoo Hidratante 500ml', description: 'Shampoo profesional para cabello seco.', sku: 'SHA-500', price: '35000.00', cost: '18000.00', stock: 12, minStock: 3, category: 'Cuidado Capilar', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-mascarilla', tenantId: tenants[0].id, name: 'Mascarilla Facial de Colágeno', description: 'Mascarilla hidratante con colágeno.', sku: 'MFC-001', price: '25000.00', cost: '12000.00', stock: 20, minStock: 5, category: 'Faciales', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-acido', tenantId: tenants[0].id, name: 'Sérum Ácido Hialurónico 30ml', description: 'Sérum antiedad con ácido hialurónico puro.', sku: 'SAH-30', price: '55000.00', cost: '28000.00', stock: 8, minStock: 2, category: 'Antiedad', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-balsamo', tenantId: tenants[1].id, name: 'Bálsamo Reparador Leave-in', description: 'Acondicionador sin enjuague para cabello dañado.', sku: 'BLR-250', price: '28000.00', cost: '14000.00', stock: 15, minStock: 3, category: 'Cuidado Capilar', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-spray', tenantId: tenants[1].id, name: 'Spray Termoprotector 200ml', description: 'Protector térmico previo al planchado.', sku: 'STP-200', price: '32000.00', cost: '15000.00', stock: 10, minStock: 2, category: 'Styling', active: true, createdAt: new Date().toISOString() },
+    { id: 'p-aceite', tenantId: tenants[1].id, name: 'Aceite Capilar Argán 100ml', description: 'Aceite nutritivo de argán para brillo.', sku: 'ACA-100', price: '38000.00', cost: '19000.00', stock: 9, minStock: 2, category: 'Nutrición', active: true, createdAt: new Date().toISOString() },
   ];
 
   // 4b. Commission Rules
@@ -1464,7 +1464,7 @@ function seedLocalStorage() {
       clientId: 'cli-laura',
       appointmentId: 'app-1',
       type: 'sale',
-      amount: '85.00',
+      amount: '85000.00',
       paymentMethod: 'card',
       description: 'Venta por Cita - Facial Rejuvenecedor',
       createdAt: subDays(today, 1).toISOString()
@@ -1475,7 +1475,7 @@ function seedLocalStorage() {
       clientId: null,
       appointmentId: null,
       type: 'expense',
-      amount: '45.00',
+      amount: '45000.00',
       paymentMethod: null,
       description: 'Compra de esmaltes de gel tonos otoño-invierno (Insumos)',
       createdAt: subDays(today, 3).toISOString()
@@ -1486,7 +1486,7 @@ function seedLocalStorage() {
       clientId: 'cli-valentina',
       appointmentId: 'app-3',
       type: 'sale',
-      amount: '180.00',
+      amount: '180000.00',
       paymentMethod: 'transfer',
       description: 'Venta por Cita - Balayage Blonde Premium',
       createdAt: subDays(today, 2).toISOString()
@@ -1500,18 +1500,18 @@ function seedLocalStorage() {
       transactionId: 't-sale-1',
       serviceId: 's-facial',
       quantity: 1,
-      unitPrice: '85.00',
+      unitPrice: '85000.00',
       collaboratorId: 'c-elena',
-      commissionPaid: '29.75' // 85 * 35%
+      commissionPaid: '29750.00' // 85 * 35%
     },
     {
       id: 'ti-2',
       transactionId: 't-sale-2',
       serviceId: 's-balayage',
       quantity: 1,
-      unitPrice: '180.00',
+      unitPrice: '180000.00',
       collaboratorId: 'c-carlos',
-      commissionPaid: '72.00' // 180 * 40%
+      commissionPaid: '72000.00' // 180 * 40%
     }
   ];
 

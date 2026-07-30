@@ -182,28 +182,28 @@ async function main() {
       name: 'Facial Rejuvenecedor con Ácido Hialurónico',
       description: 'Limpieza profunda, exfoliación, vaporización, extracción y mascarilla de colágeno.',
       duration: 60,
-      price: '85.00',
+      price: '85000.00',
     },
     {
       tenantId: tenantSpa.id,
       name: 'Masaje Relajante de Piedras Volcánicas',
       description: 'Terapia con piedras de basalto calientes aplicadas en puntos clave del cuerpo para aliviar tensión.',
       duration: 75,
-      price: '120.00',
+      price: '120000.00',
     },
     {
       tenantId: tenantSpa.id,
       name: 'Manicura Rusa Express + Esmaltado Semi',
       description: 'Limpieza profunda de cutículas con torno e hidratación con aceites aromáticos.',
       duration: 45,
-      price: '45.00',
+      price: '45000.00',
     },
     {
       tenantId: tenantSpa.id,
       name: 'Spa de Pies Hidratante y Exfoliante',
       description: 'Tinas de hidromasaje, exfoliación de sales marinas, mascarilla de barro y masaje relajante.',
       duration: 50,
-      price: '55.00',
+      price: '55000.00',
     }
   ]).returning();
 
@@ -213,28 +213,28 @@ async function main() {
       name: 'Balayage Blonde Premium',
       description: 'Aclaración de medios a puntas con técnica mano alzada, matizante hidratante y cepillado.',
       duration: 180,
-      price: '180.00',
+      price: '180000.00',
     },
     {
       tenantId: tenantGlam.id,
       name: 'Corte de Dama & Estilizado con Ondas',
       description: 'Corte personalizado según morfología del rostro, lavado, secado y ondas glam.',
       duration: 60,
-      price: '50.00',
+      price: '50000.00',
     },
     {
       tenantId: tenantGlam.id,
       name: 'Peinado Profesional para Gala o Novia',
       description: 'Recogidos, trenzas estructuradas o peinado suelto con fijadores premium de larga duración.',
       duration: 90,
-      price: '90.00',
+      price: '90000.00',
     },
     {
       tenantId: tenantGlam.id,
       name: 'Tratamiento de Keratina Orgánica e Hidratación',
       description: 'Alisado termomotivado libre de formol, ideal para control de frizz y brillo espejo.',
       duration: 120,
-      price: '130.00',
+      price: '130000.00',
     }
   ]).returning();
 
@@ -401,7 +401,7 @@ async function main() {
       clientId: spaClient1.id,
       appointmentId: app1.id,
       type: 'sale',
-      amount: '85.00',
+      amount: '85000.00',
       paymentMethod: 'card',
       description: 'Venta por Cita - Facial Rejuvenecedor',
       createdAt: subDays(today, 1),
@@ -414,9 +414,9 @@ async function main() {
       transactionId: tSpaSale1.id,
       serviceId: spaFacial.id,
       quantity: 1,
-      unitPrice: '85.00',
+      unitPrice: '85000.00',
       collaboratorId: colabElena.id,
-      commissionPaid: '29.75', // 85 * 35%
+      commissionPaid: '29750.00', // 85 * 35%
     }
   ]);
 
@@ -425,14 +425,14 @@ async function main() {
     {
       tenantId: tenantSpa.id,
       type: 'expense',
-      amount: '45.00',
+      amount: '45000.00',
       description: 'Compra de esmaltes de gel tonos otoño-invierno (Insumos)',
       createdAt: subDays(today, 3),
     },
     {
       tenantId: tenantSpa.id,
       type: 'expense',
-      amount: '120.00',
+      amount: '120000.00',
       description: 'Mantenimiento preventivo autoclave esterilizador',
       createdAt: subDays(today, 5),
     }
@@ -445,7 +445,7 @@ async function main() {
       clientId: glamClient1.id,
       appointmentId: appGlam1.id,
       type: 'sale',
-      amount: '180.00',
+      amount: '180000.00',
       paymentMethod: 'transfer',
       description: 'Venta por Cita - Balayage Blonde Premium',
       createdAt: subDays(today, 2),
@@ -455,7 +455,7 @@ async function main() {
       clientId: glamClient2.id,
       appointmentId: appGlam2.id,
       type: 'sale',
-      amount: '50.00',
+      amount: '50000.00',
       paymentMethod: 'cash',
       description: 'Venta por Cita - Corte de Dama & Estilizado',
       createdAt: today,
@@ -468,17 +468,17 @@ async function main() {
       transactionId: tGlamSale1.id,
       serviceId: glamBalayage.id,
       quantity: 1,
-      unitPrice: '180.00',
+      unitPrice: '180000.00',
       collaboratorId: colabCarlos.id,
-      commissionPaid: '72.00', // 180 * 40%
+      commissionPaid: '72000.00', // 180 * 40%
     },
     {
       transactionId: tGlamSale2.id,
       serviceId: glamCorte.id,
       quantity: 1,
-      unitPrice: '50.00',
+      unitPrice: '50000.00',
       collaboratorId: colabAna.id,
-      commissionPaid: '20.00', // 50 * 40% (Ana tiene base 35% pero el corte da 40% o se toma el 40% de Carlos, tomamos el del colaborador sobre el precio)
+      commissionPaid: '20000.00', // 50 * 40% (Ana tiene base 35% pero el corte da 40% o se toma el 40% de Carlos, tomamos el del colaborador sobre el precio)
     }
   ]);
 
@@ -487,14 +487,14 @@ async function main() {
     {
       tenantId: tenantGlam.id,
       type: 'expense',
-      amount: '80.00',
+      amount: '80000.00',
       description: 'Insumos: Decolorante L\'Oreal y aguas oxigenadas de 20v y 30v',
       createdAt: subDays(today, 4),
     },
     {
       tenantId: tenantGlam.id,
       type: 'expense',
-      amount: '150.00',
+      amount: '150000.00',
       description: 'Servicio de luz y energía eléctrica (Salón)',
       createdAt: subDays(today, 10),
     }
