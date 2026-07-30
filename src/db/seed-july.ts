@@ -244,10 +244,45 @@ async function main() {
     where: eq(schema.appointments.tenantId, tenant.id),
   });
 
+  const FORCE_RESEED = process.env.FORCE === 'true';
+
   if (existingAppointments.length > 0) {
-    console.log(`\n⚠️  Ya existen ${existingAppointments.length} citas. ¿Deseas continuar?`);
-    console.log('   Para evitar duplicados, elimínalas primero o usa un tenant diferente.\n');
-    process.exit(0);
+    if (FORCE_RESEED) {
+      console.log(`\n🗑️  FORCE=true: Eliminando ${existingAppointments.length} citas y datos relacionados...\n`);
+
+      await db.delete(schema.clientActivityLog)
+        .where(eq(schema.clientActivityLog.tenantId, tenant.id));
+      await db.delete(schema.loyaltyPoints)
+        .where(eq(schema.loyaltyPoints.tenantId, tenant.id));
+
+      const salesTxs = await db.query.transactions.findMany({
+        where: and(
+          eq(schema.transactions.tenantId, tenant.id),
+          eq(schema.transactions.type, 'sale')
+        ),
+      });
+
+      for (const tx of salesTxs) {
+        await db.delete(schema.transactionItems)
+          .where(eq(schema.transactionItems.transactionId, tx.id));
+      }
+
+      await db.delete(schema.transactions)
+        .where(and(
+          eq(schema.transactions.tenantId, tenant.id),
+          eq(schema.transactions.type, 'sale')
+        ));
+
+      await db.delete(schema.appointments)
+        .where(eq(schema.appointments.tenantId, tenant.id));
+
+      console.log('   Datos eliminados correctamente.\n');
+    } else {
+      console.log(`\n⚠️  Ya existen ${existingAppointments.length} citas.`);
+      console.log('   Para forzar re-ejecución usa: $env:FORCE="true"\n');
+      console.log('   Ejemplo: $env:SEED_TENANT_SLUG="beaute-spa"; $env:FORCE="true"; npx tsx src/db/seed-july.ts\n');
+      process.exit(0);
+    }
   }
 
   // =========================================================
