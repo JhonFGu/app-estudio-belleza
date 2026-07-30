@@ -250,6 +250,16 @@ async function main() {
     if (FORCE_RESEED) {
       console.log(`\n🗑️  FORCE=true: Eliminando ${existingAppointments.length} citas y datos relacionados...\n`);
 
+      const liquidations = await db.query.commissionLiquidations.findMany({
+        where: eq(schema.commissionLiquidations.tenantId, tenant.id),
+      });
+      for (const liq of liquidations) {
+        await db.delete(schema.commissionLiquidationItems)
+          .where(eq(schema.commissionLiquidationItems.liquidationId, liq.id));
+      }
+      await db.delete(schema.commissionLiquidations)
+        .where(eq(schema.commissionLiquidations.tenantId, tenant.id));
+
       await db.delete(schema.clientActivityLog)
         .where(eq(schema.clientActivityLog.tenantId, tenant.id));
       await db.delete(schema.loyaltyPoints)
