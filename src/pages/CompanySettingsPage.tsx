@@ -423,7 +423,7 @@ export const CompanySettingsPage: React.FC = () => {
       </form>
       )}
 
-      {activeTab === 'loyalty' && (
+      {activeTab === 'loyalty' && (<>
       <Card>
         <div className="p-5 sm:p-6 border-b border-app-gray-100 bg-amber-50/30 flex items-center gap-4">
           <div className="w-14 h-14 rounded-xl bg-amber-100 text-amber-600 flex items-center justify-center flex-shrink-0">
@@ -703,7 +703,7 @@ export const CompanySettingsPage: React.FC = () => {
           </button>
         </div>
       </Modal>
-      )}
+      </>)}
     </div>
   );
 };
