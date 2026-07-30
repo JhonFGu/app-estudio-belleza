@@ -56,7 +56,13 @@ export default async function handler(req: any, res: any) {
   }
 
   const { path } = req.query;
-  const route = Array.isArray(path) ? path.join('/') : path || '';
+  let route = Array.isArray(path) ? path.join('/') : path || '';
+
+  // Fallback: parse from URL if query path is not available (Vercel production)
+  if (!route && req.url) {
+    const urlPath = req.url.replace('/api/', '').split('?')[0];
+    route = urlPath || '';
+  }
 
   const routeHandler = routes[route];
 
