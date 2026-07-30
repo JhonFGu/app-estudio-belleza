@@ -353,6 +353,21 @@ export function setupMockFetch() {
           return createMockResponse(newSvc, 201);
         }
 
+        if (method === 'PUT' && queryId) {
+          const all = getTable('services');
+          const idx = all.findIndex((s: any) => s.id === queryId && s.tenantId === tenantId);
+          if (idx === -1) return createMockResponse({ error: 'Servicio no encontrado.' }, 404);
+          all[idx] = {
+            ...all[idx],
+            name: bodyData.name,
+            description: bodyData.description || null,
+            duration: bodyData.duration,
+            price: parseFloat(bodyData.price).toFixed(2),
+          };
+          setTable('services', all);
+          return createMockResponse(all[idx], 200);
+        }
+
         if (method === 'DELETE' && queryId) {
           const all = getTable('services');
           const filtered = all.filter((s: any) => !(s.id === queryId && s.tenantId === tenantId));
