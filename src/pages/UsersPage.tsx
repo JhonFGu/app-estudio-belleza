@@ -177,6 +177,9 @@ export const UsersPage: React.FC = () => {
     (u.email?.toLowerCase() || '').includes(searchTerm.toLowerCase())
   );
 
+  const paginatedUsers = filteredUsers.slice(0, usersPage * USERS_PER_PAGE);
+  const hasMoreUsers = paginatedUsers.length < filteredUsers.length;
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -253,11 +256,8 @@ export const UsersPage: React.FC = () => {
                       ? 'warning'
                       : 'success';
 
-  const paginatedUsers = filteredUsers.slice(0, usersPage * USERS_PER_PAGE);
-  const hasMoreUsers = paginatedUsers.length < filteredUsers.length;
-
-  return (
-                    <tr key={u.id} className="hover:bg-app-gray-50/70 transition-colors">
+                    return (
+                      <tr key={u.id} className="hover:bg-app-gray-50/70 transition-colors">
                         <td className="px-6 py-4">
                           <div className="flex items-center gap-3">
                             <button 
