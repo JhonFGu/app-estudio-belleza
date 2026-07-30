@@ -282,15 +282,43 @@ export const useAppStore = create<AppStore>((set, get) => ({
       const response = await fetch('/api/tenants');
       if (response.ok) {
         const tenantList = await response.json();
-        if (tenantList.length > 0) {
-          get().setCurrentTenant(tenantList[0]);
+        const demoTenant = tenantList.find((t: any) => t.slug === 'beaute-spa') || tenantList[0];
+        if (demoTenant) {
+          get().setCurrentTenant(demoTenant);
+          localStorage.setItem('aura_session', JSON.stringify({
+            userId: 'ddc58106-9842-412b-89f5-4c954b8002a1',
+            tenantId: demoTenant.id,
+            isDemo: true,
+          }));
+          set({ isLoading: false });
+          return;
         }
       }
     } catch (error) {
       console.error('Error al cargar demo:', error);
-    } finally {
-      set({ isLoading: false });
     }
+
+    const demoTenant: Tenant = {
+      id: 'd6f127ca-16da-4417-b525-97a788d29c1d',
+      name: 'Beauté Spa & Bienestar',
+      slug: 'beaute-spa',
+      nit: '900.123.456-7',
+      phone: '+573001234567',
+      email: 'contacto@beaute.com',
+      address: 'Calle 85 #15-45',
+      city: 'Bogotá',
+      country: 'Colombia',
+      currency: 'COP',
+      category: 'Spa',
+      createdAt: new Date().toISOString(),
+    };
+    get().setCurrentTenant(demoTenant);
+    localStorage.setItem('aura_session', JSON.stringify({
+      userId: 'ddc58106-9842-412b-89f5-4c954b8002a1',
+      tenantId: demoTenant.id,
+      isDemo: true,
+    }));
+    set({ isLoading: false });
   },
 
   logout: () => {
