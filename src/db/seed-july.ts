@@ -130,26 +130,35 @@ async function main() {
   }
 
   // =========================================================
-  // 6. CLIENTES (verificar / crear - julio 3-7)
+  // 6. CLIENTES (crear los que falten - julio 3-7)
   // =========================================================
+  const expectedClients = [
+    { name: 'Laura Gomez Restrepo', email: 'laura.gomez@gmail.com', phone: '+573001234567', notes: 'Piel muy sensible. Alérgica al eucalipto.', createdAt: day(3) },
+    { name: 'Maria Camila Restrepo', email: 'm.camila@hotmail.com', phone: '+573117654321', notes: 'Suele agendar fines de semana.', createdAt: day(4) },
+    { name: 'Paula Andrea Rojas', email: 'paula.rojas@outlook.com', phone: '+573159876543', notes: 'Manicura cada 15 días. Tonos nudes.', createdAt: day(5) },
+    { name: 'Natalia Vargas Lozano', email: 'natalia.vargas@gmail.com', phone: '+573045678901', notes: 'Busca tratamientos antiedad.', createdAt: day(6) },
+    { name: 'Carolina Osorio Marin', email: 'caro.osorio@gmail.com', phone: '+573112223344', notes: 'Cliente regular. Prefiere masajes corporales.', createdAt: day(7) },
+    { name: 'Daniela Suarez Pineda', email: 'daniela.suarez@gmail.com', phone: '+573134445566', notes: 'Primera visita - referida por Laura.', createdAt: day(7) },
+  ];
+
   let clients = await db.query.clients.findMany({
     where: eq(schema.clients.tenantId, tenant.id),
   });
 
-  if (clients.length === 0) {
-    console.log('📁 Creando clientes...');
-    clients = await db.insert(schema.clients).values([
-      { tenantId: tenant.id, name: 'Laura Gomez Restrepo', email: 'laura.gomez@gmail.com', phone: '+573001234567', notes: 'Piel muy sensible. Alérgica al eucalipto.', createdAt: day(3) },
-      { tenantId: tenant.id, name: 'Maria Camila Restrepo', email: 'm.camila@hotmail.com', phone: '+573117654321', notes: 'Suele agendar fines de semana.', createdAt: day(4) },
-      { tenantId: tenant.id, name: 'Paula Andrea Rojas', email: 'paula.rojas@outlook.com', phone: '+573159876543', notes: 'Manicura cada 15 días. Tonos nudes.', createdAt: day(5) },
-      { tenantId: tenant.id, name: 'Natalia Vargas Lozano', email: 'natalia.vargas@gmail.com', phone: '+573045678901', notes: 'Busca tratamientos antiedad.', createdAt: day(6) },
-      { tenantId: tenant.id, name: 'Carolina Osorio Marin', email: 'caro.osorio@gmail.com', phone: '+573112223344', notes: 'Cliente regular. Prefiere masajes corporales.', createdAt: day(7) },
-      { tenantId: tenant.id, name: 'Daniela Suarez Pineda', email: 'daniela.suarez@gmail.com', phone: '+573134445566', notes: 'Primera visita - referida por Laura.', createdAt: day(7) },
-    ]).returning();
-    console.log(`   ${clients.length} clientes creados.`);
-  } else {
-    console.log(`ℹ️  ${clients.length} clientes existentes.`);
+  console.log('📁 Verificando clientes...');
+  let createdCount = 0;
+  for (const expected of expectedClients) {
+    const exists = clients.find((c: any) => c.email === expected.email);
+    if (!exists) {
+      const [inserted] = await db.insert(schema.clients).values({
+        tenantId: tenant.id,
+        ...expected,
+      }).returning();
+      clients.push(inserted);
+      createdCount++;
+    }
   }
+  console.log(`   ${clients.length} clientes (${createdCount} creados).`);
 
   // =========================================================
   // 7. REGLAS DE COMISIÓN (verificar / crear)
