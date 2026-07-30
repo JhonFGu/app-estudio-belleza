@@ -43,7 +43,7 @@ export const LandingPage: React.FC = () => {
             </span>
 
             <h1 className="text-4xl lg:text-5xl xl:text-6xl font-black text-app-text-primary tracking-tight leading-tight font-sans">
-              <span className="text-app-pink">Miesbe</span>{' '}
+              <span className="text-app-mint">Miesbe</span>{' '}
               Administra facil tu estudio de belleza, todo en un solo lugar
             </h1>
 
