@@ -69,7 +69,9 @@ export default async function handler(req: any, res: any) {
   const routeHandler = routes[route];
 
   if (route === 'v1' || route.startsWith('v1/')) {
-    req.query.path = route;
+    // Vercel can provide `path` as either the catch-all segments or as a
+    // query parameter. The Hub handler expects only the route after `/v1`.
+    req.query.path = route.slice(2).replace(/^\//, '');
     return hubApiHandler(req, res);
   }
 
