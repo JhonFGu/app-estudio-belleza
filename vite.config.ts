@@ -72,10 +72,13 @@ function vercelDevPlugin() {
               };
 
               // Mock VercelResponse
+              let responseSent = false;
               const mockRes = {
                 statusCode: 200,
                 headers: {} as Record<string, string>,
+                get headersSent() { return responseSent; },
                 setHeader(name: string, value: string) {
+                  if (responseSent || res.headersSent || res.writableEnded) return;
                   this.headers[name] = value;
                   res.setHeader(name, value);
                 },
@@ -85,11 +88,15 @@ function vercelDevPlugin() {
                   return this;
                 },
                 json(data: any) {
+                  if (responseSent || res.headersSent || res.writableEnded) return this;
                   res.setHeader('Content-Type', 'application/json');
+                  responseSent = true;
                   res.end(JSON.stringify(data));
                   return this;
                 },
                 end(data?: any) {
+                  if (responseSent || res.headersSent || res.writableEnded) return this;
+                  responseSent = true;
                   res.end(data);
                   return this;
                 }
@@ -101,6 +108,7 @@ function vercelDevPlugin() {
             }
           } catch (err: any) {
             console.error(`Error executing local serverless function for ${pathname}:`, err);
+            if (res.headersSent || res.writableEnded) return;
             res.statusCode = 500;
             res.setHeader('Content-Type', 'application/json');
             res.end(JSON.stringify({ error: err.message }));

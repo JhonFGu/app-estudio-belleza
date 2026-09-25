@@ -506,7 +506,7 @@ export const CRMPage: React.FC = () => {
 
   const getColabNameForClient = (clientId: string) => {
     const app = appointments.find(a => a.clientId === clientId);
-    return app?.specialist?.name || 'Dra. Olivia Grant';
+    return app?.specialist?.name || null;
   };
 
   const getColabForClient = (clientId: string) => {
@@ -846,24 +846,28 @@ export const CRMPage: React.FC = () => {
 
                 <div className="space-y-1.5">
                   <span className="text-xs text-app-gray-500 font-bold uppercase block">Especialista Asignado</span>
-                  <div className="flex items-center gap-3 bg-app-gray-50 p-2.5 rounded-2xl border border-app-gray-150">
-                    <div className="w-9 h-9 rounded-xl bg-app-mint-100 text-app-mint flex items-center justify-center shadow-sm">
-                      <UserCheck className="w-5 h-5" />
+                  {getColabNameForClient(selectedClient.id) ? (
+                    <div className="flex items-center gap-3 bg-app-gray-50 p-2.5 rounded-2xl border border-app-gray-150">
+                      <div className="w-9 h-9 rounded-xl bg-app-mint-100 text-app-mint flex items-center justify-center shadow-sm">
+                        <UserCheck className="w-5 h-5" />
+                      </div>
+                      <div>
+                        <h6 className="text-sm font-bold text-app-text-primary leading-tight">
+                          {getColabNameForClient(selectedClient.id)}
+                        </h6>
+                        <span className="text-xs text-app-gray-500 mt-0.5 block">
+                          {(() => {
+                            const colab = getColabForClient(selectedClient.id);
+                            const specs = colab?.specialties;
+                            if (specs && specs.length > 0) return specs.join(' · ');
+                            return 'Sin especialidades registradas';
+                          })()}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <h6 className="text-sm font-bold text-app-text-primary leading-tight">
-                        {getColabNameForClient(selectedClient.id)}
-                      </h6>
-                      <span className="text-xs text-app-gray-500 mt-0.5 block">
-                        {(() => {
-                          const colab = getColabForClient(selectedClient.id);
-                          const specs = colab?.specialties;
-                          if (specs && specs.length > 0) return specs.join(' · ');
-                          return 'Sin especialidades registradas';
-                        })()}
-                      </span>
-                    </div>
-                  </div>
+                  ) : (
+                    <p className="text-sm text-app-gray-400 italic">Sin especialista asignado</p>
+                  )}
                 </div>
 
                 <div className="space-y-2">

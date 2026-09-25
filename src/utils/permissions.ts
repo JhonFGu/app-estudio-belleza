@@ -17,6 +17,7 @@ export const TAB_TO_MODULE: Record<string, string> = {
   history: 'finanzas',
   finance: 'finanzas',
   company: 'configuracion', // Configuración de Empresa
+  integrations: 'configuracion',
 };
 
 /**

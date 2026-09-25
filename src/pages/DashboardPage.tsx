@@ -5,14 +5,28 @@ import {
   TrendingUp,
   Users,
   DollarSign,
-  Activity
+  Activity,
+  Calendar,
+  Filter
 } from 'lucide-react';
-import { Badge, PageHeader, Tabs } from '../components/ui';
+import { Badge, PageHeader, Tabs, Modal, Button } from '../components/ui';
 import type { TabItem } from '../components/ui';
 
 export const DashboardPage: React.FC = () => {
   const { currentTenant, refreshTrigger } = useAppStore();
-  const [period, setPeriod] = useState<'day' | 'month' | 'year' | 'all'>('month');
+  const [period, setPeriod] = useState<'day' | 'month' | 'year' | 'all' | 'custom'>('month');
+  const [customStartDate, setCustomStartDate] = useState<string>('');
+  const [customEndDate, setCustomEndDate] = useState<string>('');
+  const [isCustomModalOpen, setIsCustomModalOpen] = useState<boolean>(false);
+
+  // Modal temporary state
+  const [rangeMode, setRangeMode] = useState<'days' | 'months'>('days');
+  const [tempStartDate, setTempStartDate] = useState<string>('');
+  const [tempEndDate, setTempEndDate] = useState<string>('');
+  const [tempStartMonth, setTempStartMonth] = useState<string>('');
+  const [tempEndMonth, setTempEndMonth] = useState<string>('');
+  const [validationError, setValidationError] = useState<string>('');
+
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
 
@@ -21,7 +35,12 @@ export const DashboardPage: React.FC = () => {
       if (!currentTenant) return;
       setLoading(true);
       try {
-        const response = await fetch(`/api/dashboard?period=${period}`, {
+        let url = `/api/dashboard?period=${period}`;
+        if (period === 'custom' && customStartDate && customEndDate) {
+          url += `&startDate=${customStartDate}&endDate=${customEndDate}`;
+        }
+
+        const response = await fetch(url, {
           headers: {
             'x-tenant-id': currentTenant.id
           }
@@ -38,7 +57,103 @@ export const DashboardPage: React.FC = () => {
     };
 
     fetchDashboardData();
-  }, [currentTenant, refreshTrigger, period]);
+  }, [currentTenant, refreshTrigger, period, customStartDate, customEndDate]);
+
+  const openCustomModal = () => {
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    const firstDayMonthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-01`;
+    const monthStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+    setTempStartDate(customStartDate || firstDayMonthStr);
+    setTempEndDate(customEndDate || todayStr);
+    setTempStartMonth(customStartDate ? customStartDate.substring(0, 7) : monthStr);
+    setTempEndMonth(customEndDate ? customEndDate.substring(0, 7) : monthStr);
+    setValidationError('');
+    setIsCustomModalOpen(true);
+  };
+
+  const applyPreset = (preset: 'today' | 'last7' | 'last30' | 'thisMonth' | 'lastMonth' | 'thisYear') => {
+    const now = new Date();
+    let s = new Date();
+    let e = new Date();
+
+    if (preset === 'today') {
+      s = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      e = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (preset === 'last7') {
+      s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 6);
+      e = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (preset === 'last30') {
+      s = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 29);
+      e = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    } else if (preset === 'thisMonth') {
+      s = new Date(now.getFullYear(), now.getMonth(), 1);
+      e = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    } else if (preset === 'lastMonth') {
+      s = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+      e = new Date(now.getFullYear(), now.getMonth(), 0);
+    } else if (preset === 'thisYear') {
+      s = new Date(now.getFullYear(), 0, 1);
+      e = new Date(now.getFullYear(), 11, 31);
+    }
+
+    const sStr = `${s.getFullYear()}-${String(s.getMonth() + 1).padStart(2, '0')}-${String(s.getDate()).padStart(2, '0')}`;
+    const eStr = `${e.getFullYear()}-${String(e.getMonth() + 1).padStart(2, '0')}-${String(e.getDate()).padStart(2, '0')}`;
+
+    setRangeMode('days');
+    setTempStartDate(sStr);
+    setTempEndDate(eStr);
+    setTempStartMonth(sStr.substring(0, 7));
+    setTempEndMonth(eStr.substring(0, 7));
+    setValidationError('');
+  };
+
+  const handleApplyFilter = () => {
+    let finalStart = '';
+    let finalEnd = '';
+
+    if (rangeMode === 'days') {
+      if (!tempStartDate || !tempEndDate) {
+        setValidationError('Debes seleccionar tanto la fecha inicial como la final.');
+        return;
+      }
+      if (tempStartDate > tempEndDate) {
+        setValidationError('La fecha inicial no puede ser posterior a la fecha final.');
+        return;
+      }
+      finalStart = tempStartDate;
+      finalEnd = tempEndDate;
+    } else {
+      if (!tempStartMonth || !tempEndMonth) {
+        setValidationError('Debes seleccionar tanto el mes inicial como el final.');
+        return;
+      }
+      if (tempStartMonth > tempEndMonth) {
+        setValidationError('El mes inicial no puede ser posterior al mes final.');
+        return;
+      }
+      const [sy, sm] = tempStartMonth.split('-').map(Number);
+      const [ey, em] = tempEndMonth.split('-').map(Number);
+
+      finalStart = `${sy}-${String(sm).padStart(2, '0')}-01`;
+      const lastDay = new Date(ey, em, 0).getDate();
+      finalEnd = `${ey}-${String(em).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+    }
+
+    setCustomStartDate(finalStart);
+    setCustomEndDate(finalEnd);
+    setPeriod('custom');
+    setIsCustomModalOpen(false);
+  };
+
+  const handlePeriodChange = (id: string) => {
+    if (id === 'custom') {
+      openCustomModal();
+    } else {
+      setPeriod(id as any);
+    }
+  };
 
   if (loading && !data) {
     return (
@@ -62,14 +177,22 @@ export const DashboardPage: React.FC = () => {
   const paymentMethods: any[] = data?.paymentMethods || [];
   const recentAppointments: any[] = data?.recentAppointments || [];
 
-  // Calculate max monthly sales for chart scaling
-  const maxMonthlySales = Math.max(1, ...monthlyFlow.map((m: any) => Math.max(m.sales || 0, m.expenses || 0)));
+  // Format custom label for tabs
+  const getCustomLabel = () => {
+    if (period === 'custom' && customStartDate && customEndDate) {
+      const s = customStartDate.split('-').reverse().slice(0, 2).join('/');
+      const e = customEndDate.split('-').reverse().slice(0, 2).join('/');
+      return `${s} - ${e}`;
+    }
+    return 'Personalizado';
+  };
 
   const periodTabs: TabItem[] = [
     { id: 'day', label: 'Hoy' },
     { id: 'month', label: 'Mes Actual' },
     { id: 'year', label: 'Año Actual' },
     { id: 'all', label: 'Todos' },
+    { id: 'custom', label: getCustomLabel(), icon: <Calendar className="w-4 h-4" /> },
   ];
 
   return (
@@ -79,11 +202,24 @@ export const DashboardPage: React.FC = () => {
         title="Métricas del Negocio"
         subtitle="Monitoreo en tiempo real de ingresos, ventas POS y rendimiento."
         actions={
-          <Tabs
-            tabs={periodTabs}
-            activeTab={period}
-            onChange={(id) => setPeriod(id as 'day' | 'month' | 'year' | 'all')}
-          />
+          <div className="flex items-center gap-2">
+            <Tabs
+              tabs={periodTabs}
+              activeTab={period}
+              onChange={handlePeriodChange}
+            />
+            {period === 'custom' && (
+              <button
+                type="button"
+                onClick={openCustomModal}
+                className="p-2 rounded-xl bg-app-mint-100 text-app-mint hover:bg-app-mint-200 transition-all font-bold text-xs flex items-center gap-1.5 flex-shrink-0"
+                title="Cambiar fecha personalizada"
+              >
+                <Filter className="w-4 h-4" />
+                <span className="hidden sm:inline">Cambiar Fechas</span>
+              </button>
+            )}
+          </div>
         }
       />
       {/* FILA 1: 4 TARJETAS MÉTRICAS SUPERIORES */}
@@ -477,6 +613,157 @@ export const DashboardPage: React.FC = () => {
         </div>
 
       </div>
+
+      {/* MODAL PARA SELECCIONAR FECHAS PERSONALIZADAS */}
+      <Modal
+        isOpen={isCustomModalOpen}
+        onClose={() => setIsCustomModalOpen(false)}
+        title="Seleccionar Rango de Fechas"
+        subtitle="Elige un rango personalizado por días o por meses para consultar las métricas."
+        icon={<Calendar className="w-5 h-5 text-app-mint" />}
+        size="md"
+        footer={
+          <div className="flex items-center justify-between w-full">
+            <button
+              type="button"
+              onClick={() => setIsCustomModalOpen(false)}
+              className="px-4 py-2 text-xs font-bold text-app-text-secondary hover:text-app-text-primary rounded-xl transition-all"
+            >
+              Cancelar
+            </button>
+            <Button onClick={handleApplyFilter} variant="primary" className="text-xs px-5">
+              Aplicar Filtro
+            </Button>
+          </div>
+        }
+      >
+        <div className="space-y-5">
+          {/* Selector de Modo: Por Días vs Por Meses */}
+          <div className="flex rounded-xl bg-app-gray-100 p-1">
+            <button
+              type="button"
+              onClick={() => setRangeMode('days')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                rangeMode === 'days' ? 'bg-white text-app-text-primary shadow-sm' : 'text-app-gray-500 hover:text-app-text-primary'
+              }`}
+            >
+              📆 Rango por Días
+            </button>
+            <button
+              type="button"
+              onClick={() => setRangeMode('months')}
+              className={`flex-1 py-2 text-xs font-bold rounded-lg transition-all ${
+                rangeMode === 'months' ? 'bg-white text-app-text-primary shadow-sm' : 'text-app-gray-500 hover:text-app-text-primary'
+              }`}
+            >
+              🗓️ Rango por Meses
+            </button>
+          </div>
+
+          {/* Presets Rápidos */}
+          <div>
+            <span className="block text-[11px] font-bold text-app-gray-500 uppercase tracking-wider mb-2">
+              Accesos Rápidos
+            </span>
+            <div className="flex flex-wrap gap-1.5">
+              <button
+                type="button"
+                onClick={() => applyPreset('today')}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-gray-100 hover:bg-app-mint-100 hover:text-app-mint rounded-lg text-app-text-secondary transition-all"
+              >
+                Hoy
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('last7')}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-gray-100 hover:bg-app-mint-100 hover:text-app-mint rounded-lg text-app-text-secondary transition-all"
+              >
+                Últimos 7 días
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('last30')}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-gray-100 hover:bg-app-mint-100 hover:text-app-mint rounded-lg text-app-text-secondary transition-all"
+              >
+                Últimos 30 días
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('thisMonth')}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-gray-100 hover:bg-app-mint-100 hover:text-app-mint rounded-lg text-app-text-secondary transition-all"
+              >
+                Este Mes
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('lastMonth')}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-gray-100 hover:bg-app-mint-100 hover:text-app-mint rounded-lg text-app-text-secondary transition-all"
+              >
+                Mes Pasado
+              </button>
+              <button
+                type="button"
+                onClick={() => applyPreset('thisYear')}
+                className="px-3 py-1.5 text-xs font-semibold bg-app-gray-100 hover:bg-app-mint-100 hover:text-app-mint rounded-lg text-app-text-secondary transition-all"
+              >
+                Año Actual
+              </button>
+            </div>
+          </div>
+
+          {/* Inputs según el modo */}
+          {rangeMode === 'days' ? (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-app-gray-50/70 p-4 rounded-2xl border border-app-gray-150">
+              <div>
+                <label className="block text-xs font-bold text-app-text-secondary mb-1">Fecha Inicial (Desde)</label>
+                <input
+                  type="date"
+                  value={tempStartDate}
+                  onChange={(e) => setTempStartDate(e.target.value)}
+                  className="w-full bg-white border border-app-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-app-text-primary focus:outline-none focus:border-app-mint shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-app-text-secondary mb-1">Fecha Final (Hasta)</label>
+                <input
+                  type="date"
+                  value={tempEndDate}
+                  onChange={(e) => setTempEndDate(e.target.value)}
+                  className="w-full bg-white border border-app-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-app-text-primary focus:outline-none focus:border-app-mint shadow-sm"
+                />
+              </div>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 bg-app-gray-50/70 p-4 rounded-2xl border border-app-gray-150">
+              <div>
+                <label className="block text-xs font-bold text-app-text-secondary mb-1">Mes Inicial (Desde)</label>
+                <input
+                  type="month"
+                  value={tempStartMonth}
+                  onChange={(e) => setTempStartMonth(e.target.value)}
+                  className="w-full bg-white border border-app-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-app-text-primary focus:outline-none focus:border-app-mint shadow-sm"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-bold text-app-text-secondary mb-1">Mes Final (Hasta)</label>
+                <input
+                  type="month"
+                  value={tempEndMonth}
+                  onChange={(e) => setTempEndMonth(e.target.value)}
+                  className="w-full bg-white border border-app-gray-200 rounded-xl px-3 py-2 text-xs font-bold text-app-text-primary focus:outline-none focus:border-app-mint shadow-sm"
+                />
+              </div>
+            </div>
+          )}
+
+          {/* Mensaje de error de validación */}
+          {validationError && (
+            <div className="p-3 bg-red-50 text-red-600 text-xs font-semibold rounded-xl flex items-center gap-2 border border-red-200">
+              <span>⚠️</span> {validationError}
+            </div>
+          )}
+        </div>
+      </Modal>
     </div>
   );
 };

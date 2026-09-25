@@ -1,0 +1,162 @@
+openapi: 3.0.3
+info:
+  title: Clinica Belleza ERP - Hub de Agentes API
+  version: 1.0.0
+  description: API canonica server-to-server para automatizacion por WhatsApp.
+servers:
+  - url: /api/v1
+security:
+  - HubApiKey: []
+paths:
+  /services:
+    get:
+      summary: Lista servicios activos
+      responses:
+        '200': { description: Servicios, content: { application/json: { schema: { $ref: '#/components/schemas/Envelope' } } } }
+  /professionals:
+    get:
+      summary: Lista profesionales activos
+      responses:
+        '200': { description: Profesionales }
+  /clients:
+    get:
+      summary: Busca clientes por teléfono
+      parameters: [{ in: query, name: phone, schema: { type: string } }]
+      responses: { '200': { description: Clientes } }
+    post:
+      summary: Crea un cliente mínimo
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/ClientInput' }, example: { external_id: 'wa:573001234567', name: 'Laura Gómez', phone: '+573001234567' } } } }
+      responses: { '201': { description: Cliente creado } }
+  /availability:
+    get:
+      summary: Consulta disponibilidad del profesional
+      parameters:
+        - { in: query, name: service_id, required: true, schema: { type: string, format: uuid } }
+        - { in: query, name: professional_id, schema: { type: string, format: uuid } }
+        - { in: query, name: from, required: true, schema: { type: string, format: date-time } }
+        - { in: query, name: to, required: true, schema: { type: string, format: date-time } }
+        - { in: query, name: timezone, schema: { type: string, example: America/Bogota } }
+      responses:
+        '200':
+          description: Slots concretos disponibles para reservar
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Envelope'
+              example:
+                data:
+                  - professional_id: 00000000-0000-0000-0000-000000000001
+                    service_id: 00000000-0000-0000-0000-000000000002
+                    start_at: '2026-09-20T14:00:00.000Z'
+                    end_at: '2026-09-20T15:00:00.000Z'
+                    timezone: America/Bogota
+  /appointments:
+    get:
+      summary: Lista citas del período solicitado
+      parameters:
+        - { in: query, name: from, required: true, schema: { type: string, format: date-time } }
+        - { in: query, name: to, required: true, schema: { type: string, format: date-time } }
+        - { in: query, name: professional_id, schema: { type: string, format: uuid } }
+        - { in: query, name: client_id, schema: { type: string, format: uuid } }
+        - { in: query, name: status, schema: { type: string, enum: [scheduled, completed, cancelled, no_show] } }
+        - { in: query, name: limit, schema: { type: integer, minimum: 1, maximum: 100, default: 50 } }
+        - { in: query, name: cursor, schema: { type: string } }
+      responses:
+        '200':
+          description: Página de citas
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PaginatedAppointments' }
+        '422': { $ref: '#/components/responses/Validation' }
+    post:
+      summary: Crea una cita usando la duración oficial del servicio
+      parameters: [{ $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/AppointmentInput' }, example: { external_id: 'wa-booking-1', client_id: 'uuid', service_id: 'uuid', professional_id: 'uuid', start_at: '2026-09-14T15:00:00-05:00', timezone: 'America/Bogota' } } } }
+      responses:
+        '201': { description: Cita creada }
+        '409': { $ref: '#/components/responses/Conflict' }
+  /appointments/{id}:
+    get:
+      summary: Obtiene una cita
+      parameters: [{ $ref: '#/components/parameters/AppointmentId' }]
+      responses: { '200': { description: Cita } }
+  /appointments/{id}/cancel:
+    post:
+      summary: Cancela una cita
+      parameters: [{ $ref: '#/components/parameters/AppointmentId' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      responses: { '200': { description: Cita cancelada } }
+  /appointments/{id}/reschedule:
+    post:
+      summary: Reprograma una cita
+      parameters: [{ $ref: '#/components/parameters/AppointmentId' }, { $ref: '#/components/parameters/IdempotencyKey' }]
+      requestBody: { required: true, content: { application/json: { schema: { type: object, required: [start_at], properties: { start_at: { type: string, format: date-time }, timezone: { type: string } } } } } }
+      responses: { '200': { description: Cita reprogramada }, '409': { $ref: '#/components/responses/Conflict' } }
+components:
+  securitySchemes:
+    HubApiKey: { type: http, scheme: bearer, bearerFormat: API key, description: API key por tenant. También acepta X-Api-Key. }
+  parameters:
+    IdempotencyKey: { in: header, name: Idempotency-Key, required: true, schema: { type: string, minLength: 8 } }
+    AppointmentId: { in: path, name: id, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Conflict: { description: Horario ocupado, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Validation: { description: Parámetros inválidos, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    Envelope: { type: object, properties: { data: {}, meta: { type: object } } }
+    ClientInput: { type: object, required: [name, phone], properties: { external_id: { type: string }, name: { type: string }, phone: { type: string }, email: { type: string, format: email }, notes: { type: string } } }
+    AppointmentInput: { type: object, required: [client_id, service_id, professional_id, start_at], properties: { external_id: { type: string }, client_id: { type: string, format: uuid }, service_id: { type: string, format: uuid }, professional_id: { type: string, format: uuid }, start_at: { type: string, format: date-time }, timezone: { type: string }, notes: { type: string } } }
+    Error: { type: object, properties: { error: { type: object, properties: { code: { type: string }, message: { type: string }, details: { type: array }, request_id: { type: string } } } } }
+    WebhookEvent:
+      type: object
+      required: [id, type, created_at, data]
+      properties:
+        id: { type: string }
+        type: { type: string, enum: [appointment.created, appointment.cancelled, appointment.rescheduled] }
+        created_at: { type: string, format: date-time }
+        data: { type: object, additionalProperties: true }
+    PaginatedAppointments:
+      type: object
+      properties:
+        data: { type: array, items: { $ref: '#/components/schemas/Appointment' } }
+        meta:
+          type: object
+          properties:
+            request_id: { type: string }
+            has_more: { type: boolean }
+            next_cursor: { type: string, nullable: true }
+    Appointment:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        external_id: { type: string, nullable: true }
+        status: { type: string }
+        start_at: { type: string, format: date-time }
+        end_at: { type: string, format: date-time }
+        client_id: { type: string, format: uuid }
+        professional_id: { type: string, format: uuid }
+        service_id: { type: string, format: uuid }
+  x-webhooks:
+    appointmentCreated:
+      post:
+        summary: Cita creada en el ERP
+        requestBody:
+          required: true
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/WebhookEvent' }
+              example:
+                id: evt_123
+                type: appointment.created
+                created_at: '2026-09-20T14:00:00Z'
+                data: { id: 00000000-0000-0000-0000-000000000003, status: scheduled }
+        responses: { '2XX': { description: Evento recibido } }
+    appointmentCancelled:
+      post:
+        summary: Cita cancelada en el ERP
+        requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WebhookEvent' } } } }
+        responses: { '2XX': { description: Evento recibido } }
+    appointmentRescheduled:
+      post:
+        summary: Cita reprogramada en el ERP
+        requestBody: { required: true, content: { application/json: { schema: { $ref: '#/components/schemas/WebhookEvent' } } } }
+        responses: { '2XX': { description: Evento recibido } }
+  

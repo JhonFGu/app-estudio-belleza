@@ -18,6 +18,21 @@ import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { Button, Badge, PageHeader, StatCard, Modal, Input, Select } from '../components/ui';
 
+const getCurrentWeekString = (date = new Date()) => {
+  const target = new Date(date.valueOf());
+  const dayNr = (date.getDay() + 6) % 7;
+  target.setDate(target.getDate() - dayNr + 3);
+  const firstThursday = target.valueOf();
+  target.setMonth(0, 1);
+  if (target.getDay() !== 4) {
+    target.setMonth(0, 1 + ((4 - target.getDay() + 7) % 7));
+  }
+  const weekNumber = 1 + Math.round((firstThursday - target.valueOf()) / 604800000);
+  const year = target.getFullYear();
+  const weekStr = weekNumber < 10 ? `0${weekNumber}` : `${weekNumber}`;
+  return `${year}-W${weekStr}`;
+};
+
 export const CollaboratorsPage: React.FC = () => {
   const { currentTenant, refreshTrigger, triggerRefresh } = useAppStore();
 
@@ -30,6 +45,7 @@ export const CollaboratorsPage: React.FC = () => {
 
   // View state: 'list' or 'detail'
   const [viewMode, setViewMode] = useState<'list' | 'detail'>('list');
+  const [currentWeek, setCurrentWeek] = useState<string>(getCurrentWeekString());
 
   // Modals / Form
   const [showCreateModal, setShowCreateModal] = useState(false);
@@ -85,7 +101,15 @@ export const CollaboratorsPage: React.FC = () => {
     }
   };
 
-  const daysOfWeek = ['Domingo', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado'];
+  const daysOfWeek = [
+    { id: 1, name: 'Lunes' },
+    { id: 2, name: 'Martes' },
+    { id: 3, name: 'Miércoles' },
+    { id: 4, name: 'Jueves' },
+    { id: 5, name: 'Viernes' },
+    { id: 6, name: 'Sábado' },
+    { id: 0, name: 'Domingo' }
+  ];
 
   useEffect(() => {
     const fetchColabData = async () => {
@@ -204,13 +228,30 @@ export const CollaboratorsPage: React.FC = () => {
         .reduce((sum, item) => sum + parseFloat(item.commissionPaid || '0.00'), 0)
     : 0;
 
-  const colabSchedules = selectedColab
-    ? schedules.filter(s => s.collaboratorId === selectedColab.id)
-    : [];
-
   const colabAppointments = selectedColab
     ? appointments.filter(a => a.specialistId === selectedColab.id)
     : [];
+
+  const getColabDaySchedule = (colabId: string, dayId: number) => {
+    const weekSched = schedules.find(
+      s => s.collaboratorId === colabId && s.dayOfWeek === dayId && s.week === currentWeek
+    );
+    if (weekSched) return weekSched;
+
+    const baseSched = schedules.find(
+      s => s.collaboratorId === colabId && s.dayOfWeek === dayId && (!s.week || s.week === 'default')
+    );
+    if (baseSched) return { ...baseSched, week: currentWeek };
+
+    return {
+      collaboratorId: colabId,
+      dayOfWeek: dayId,
+      week: currentWeek,
+      startTime: '09:00',
+      endTime: '18:00',
+      isActive: true
+    };
+  };
 
   if (loading && collaborators.length === 0) {
     return (
@@ -365,7 +406,7 @@ export const CollaboratorsPage: React.FC = () => {
                 tone="mint"
                 icon={<Users />}
                 label="Clientes Atendidos"
-                value={String(colabAppointments.length || 120)}
+                value={String(colabAppointments.length)}
               />
               <StatCard
                 tone="lavender"
@@ -444,20 +485,20 @@ export const CollaboratorsPage: React.FC = () => {
                 </div>
 
                 <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-                  {daysOfWeek.map((dayName, idx) => {
-                    const daySched = colabSchedules.find(s => s.dayOfWeek === idx);
+                  {daysOfWeek.map((day) => {
+                    const daySched = getColabDaySchedule(selectedColab.id, day.id);
                     const isActive = daySched ? daySched.isActive : false;
                     
                     return (
                       <div
-                        key={idx}
+                        key={day.id}
                         className={`p-3 rounded-2xl border flex justify-between items-center text-[11px] font-bold ${
                           isActive
                             ? 'bg-[#fdf2f8] border-app-mint-250/20 text-app-mint shadow-sm'
                             : 'bg-app-gray-100 border-app-gray-200 text-app-gray-500'
                         }`}
                       >
-                        <span>{dayName}</span>
+                        <span>{day.name}</span>
                         {isActive ? (
                           <span>{daySched.startTime} - {daySched.endTime}</span>
                         ) : (

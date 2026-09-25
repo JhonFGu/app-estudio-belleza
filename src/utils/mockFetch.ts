@@ -298,6 +298,10 @@ export function setupMockFetch() {
             phone: bodyData.phone,
             specialties: bodyData.specialties || [],
             avatarUrl: bodyData.avatarUrl || `https://api.dicebear.com/7.x/adventurer/svg?seed=${encodeURIComponent(bodyData.name)}`,
+            bio: bodyData.bio || null,
+            experience: bodyData.experience || null,
+            docType: bodyData.docType || 'Cédula',
+            docNumber: bodyData.docNumber || null,
             active: true,
             createdAt: new Date().toISOString()
           };
@@ -974,6 +978,56 @@ export function setupMockFetch() {
 
         let allApps = rawApps.filter((a: any) => !a.tenantId || a.tenantId === tenantId || tenantId?.startsWith('d6f127ca'));
         if (allApps.length === 0 && rawApps.length > 0) allApps = rawApps;
+
+        // Date Filter Logic for Mock DB
+        const periodParam = parsedUrl.searchParams.get('period') || 'all';
+        const reqStartDate = parsedUrl.searchParams.get('startDate');
+        const reqEndDate = parsedUrl.searchParams.get('endDate');
+
+        const now = new Date();
+        let startDateObj: Date | null = null;
+        let endDateObj: Date | null = null;
+
+        if (periodParam === 'day') {
+          startDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+          endDateObj = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+        } else if (periodParam === 'month') {
+          startDateObj = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+          endDateObj = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
+        } else if (periodParam === 'year') {
+          startDateObj = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+          endDateObj = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+        } else if (periodParam === 'custom') {
+          if (reqStartDate) {
+            const [y, m, d] = reqStartDate.split('-').map(Number);
+            startDateObj = new Date(y, m - 1, d, 0, 0, 0, 0);
+          }
+          if (reqEndDate) {
+            const [y, m, d] = reqEndDate.split('-').map(Number);
+            endDateObj = new Date(y, m - 1, d, 23, 59, 59, 999);
+          }
+        }
+
+        if (startDateObj || endDateObj) {
+          allTrans = allTrans.filter((t: any) => {
+            const d = new Date(t.createdAt || Date.now());
+            if (startDateObj && d < startDateObj) return false;
+            if (endDateObj && d > endDateObj) return false;
+            return true;
+          });
+          allClients = allClients.filter((c: any) => {
+            const d = new Date(c.createdAt || Date.now());
+            if (startDateObj && d < startDateObj) return false;
+            if (endDateObj && d > endDateObj) return false;
+            return true;
+          });
+          allApps = allApps.filter((a: any) => {
+            const d = new Date(a.startTime || Date.now());
+            if (startDateObj && d < startDateObj) return false;
+            if (endDateObj && d > endDateObj) return false;
+            return true;
+          });
+        }
 
         const totalSales = allTrans
           .filter((t: any) => t.type === 'sale')

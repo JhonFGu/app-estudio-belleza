@@ -16,6 +16,7 @@ import { FinancePage } from './pages/FinancePage';
 import { InventoryPage } from './pages/InventoryPage';
 import { UsersPage } from './pages/UsersPage';
 import { CompanySettingsPage } from './pages/CompanySettingsPage';
+import { IntegrationsHubPage } from './pages/IntegrationsHubPage';
 import { UserProfileModal } from './components/users/UserProfileModal';
 
 function App() {
@@ -59,6 +60,8 @@ function App() {
         return <UsersPage />;
       case 'company':
         return <CompanySettingsPage />;
+      case 'integrations':
+        return <IntegrationsHubPage />;
       case 'schedule':
         return <SchedulePage />;
       case 'history':

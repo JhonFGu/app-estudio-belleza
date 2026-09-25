@@ -1,4 +1,4 @@
-import { pgTable, uuid, text, timestamp, boolean, decimal, integer, index, jsonb } from 'drizzle-orm/pg-core';
+import { pgTable, uuid, text, timestamp, boolean, decimal, integer, index, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
 import { relations } from 'drizzle-orm';
 
 // 1. Tenants (Centros de Belleza / Inquilinos)
@@ -19,6 +19,30 @@ export const tenants = pgTable('tenants', {
   instagram: text('instagram'), // Instagram
   createdAt: timestamp('created_at').defaultNow().notNull(),
 });
+
+// Integracion server-to-server con el Hub de agentes.
+export const integrationApiKeys = pgTable('integration_api_keys', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  name: text('name').notNull(),
+  keyPrefix: text('key_prefix').notNull(),
+  keyHash: text('key_hash').notNull().unique(),
+  scopes: text('scopes').array().notNull().default([]),
+  active: boolean('active').default(true).notNull(),
+  lastUsedAt: timestamp('last_used_at'),
+  expiresAt: timestamp('expires_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({ tenantIdx: index('integration_keys_tenant_idx').on(table.tenantId) }));
+
+export const integrationIdempotencyKeys = pgTable('integration_idempotency_keys', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  key: text('key').notNull(),
+  requestHash: text('request_hash').notNull(),
+  statusCode: integer('status_code').notNull(),
+  responseBody: jsonb('response_body').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({ tenantKeyUnique: uniqueIndex('integration_idempotency_tenant_key').on(table.tenantId, table.key) }));
 
 export const tenantsRelations = relations(tenants, ({ many }) => ({
   users: many(users),
@@ -158,9 +182,11 @@ export const appointments = pgTable('appointments', {
   endTime: timestamp('end_time').notNull(),
   status: text('status').notNull().default('scheduled'), // 'scheduled' | 'completed' | 'cancelled' | 'no_show'
   notes: text('notes'),
+  externalId: text('external_id'),
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({
   tenantIdx: index('appointments_tenant_idx').on(table.tenantId),
+  externalIdx: index('appointments_external_idx').on(table.tenantId, table.externalId),
   timeRangeIdx: index('appointments_time_range_idx').on(table.tenantId, table.startTime, table.endTime),
 }));
 
@@ -294,6 +320,36 @@ export const transactionItems = pgTable('transaction_items', {
   collaboratorId: uuid('collaborator_id').references(() => collaborators.id), // Quien hizo el trabajo
   commissionPaid: decimal('commission_paid', { precision: 10, scale: 2 }).default('0.00').notNull(), // Comision neta calculada
 });
+
+export const webhookSubscriptions = pgTable('webhook_subscriptions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  url: text('url').notNull(),
+  secret: text('secret').notNull(),
+  events: text('events').array().notNull().default([]),
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({ tenantIdx: index('webhook_subscriptions_tenant_idx').on(table.tenantId) }));
+
+export const webhookDeliveries = pgTable('webhook_deliveries', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  subscriptionId: uuid('subscription_id').references(() => webhookSubscriptions.id, { onDelete: 'cascade' }).notNull(),
+  eventId: text('event_id').notNull().unique(),
+  eventType: text('event_type').notNull(),
+  statusCode: integer('status_code'),
+  attempts: integer('attempts').default(0).notNull(),
+  deliveredAt: timestamp('delivered_at'),
+  lastError: text('last_error'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({ subscriptionIdx: index('webhook_deliveries_subscription_idx').on(table.subscriptionId) }));
+
+export const authSessions = pgTable('auth_sessions', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  userId: uuid('user_id').references(() => users.id, { onDelete: 'cascade' }).notNull(),
+  tokenHash: text('token_hash').notNull().unique(),
+  expiresAt: timestamp('expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({ userIdx: index('auth_sessions_user_idx').on(table.userId) }));
 
 export const transactionItemsRelations = relations(transactionItems, ({ one }) => ({
   transaction: one(transactions, {

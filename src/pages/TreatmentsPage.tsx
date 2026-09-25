@@ -189,7 +189,12 @@ export const TreatmentsPage: React.FC = () => {
                   return (
                     <tr
                       key={service.id}
-                      onClick={() => { setSelectedService(service); setShowDetailModal(true); }}
+                      onClick={() => {
+                        setSelectedService(service);
+                        if (window.innerWidth < 1280) {
+                          setShowDetailModal(true);
+                        }
+                      }}
                       className={`border-b border-app-gray-100 hover:bg-app-gray-50/50 cursor-pointer transition-colors ${
                         isSelected ? 'bg-app-mint-50/40' : ''
                       }`}
@@ -290,66 +295,68 @@ export const TreatmentsPage: React.FC = () => {
       </Card>
 
       {/* Mobile: Detalle del tratamiento como modal fullscreen */}
-      <Modal
-        isOpen={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
-        title={selectedService?.name || 'Detalle del Tratamiento'}
-        icon={<Sparkles />}
-        fullscreen
-      >
-        {selectedService && (
-          <div className="space-y-4">
-            <span className="text-2xs text-app-mint font-extrabold uppercase tracking-wider block">Procedimiento Catálogo</span>
+      <div className="xl:hidden">
+        <Modal
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          title={selectedService?.name || 'Detalle del Tratamiento'}
+          icon={<Sparkles />}
+          fullscreen
+        >
+          {selectedService && (
+            <div className="space-y-4">
+              <span className="text-2xs text-app-mint font-extrabold uppercase tracking-wider block">Procedimiento Catálogo</span>
 
-            <div>
-              <h5 className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
-                <FileText className="w-3.5 h-3.5" />
-                Descripción del Tratamiento
-              </h5>
-              <p className="text-sm text-app-text-secondary bg-app-gray-50 border border-app-gray-100 p-3.5 rounded-2xl leading-relaxed italic">
-                {selectedService.description ? `"${selectedService.description}"` : 'No registra descripción técnica.'}
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-3">
-              <div className="p-3.5 bg-app-gray-50 rounded-2xl border border-app-gray-100">
-                <span className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider block mb-1">Duración</span>
-                <span className="text-sm font-extrabold text-app-text-primary flex items-center gap-1.5">
-                  <Clock className="w-4 h-4 text-app-mint" />
-                  {selectedService.duration} min
-                </span>
+              <div>
+                <h5 className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                  <FileText className="w-3.5 h-3.5" />
+                  Descripción del Tratamiento
+                </h5>
+                <p className="text-sm text-app-text-secondary bg-app-gray-50 border border-app-gray-100 p-3.5 rounded-2xl leading-relaxed italic">
+                  {selectedService.description ? `"${selectedService.description}"` : 'No registra descripción técnica.'}
+                </p>
               </div>
-              <div className="p-3.5 bg-app-gray-50 rounded-2xl border border-app-gray-100">
-                <span className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider block mb-1">Precio Fijo</span>
-                <span className="text-sm font-extrabold text-app-text-primary flex items-center gap-1 font-sans">
-                  <DollarSign className="w-4 h-4 text-app-pink" />
-                  {formatCOP(selectedService.price)}
-                </span>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3.5 bg-app-gray-50 rounded-2xl border border-app-gray-100">
+                  <span className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider block mb-1">Duración</span>
+                  <span className="text-sm font-extrabold text-app-text-primary flex items-center gap-1.5">
+                    <Clock className="w-4 h-4 text-app-mint" />
+                    {selectedService.duration} min
+                  </span>
+                </div>
+                <div className="p-3.5 bg-app-gray-50 rounded-2xl border border-app-gray-100">
+                  <span className="text-2xs font-extrabold text-app-text-secondary uppercase tracking-wider block mb-1">Precio Fijo</span>
+                  <span className="text-sm font-extrabold text-app-text-primary flex items-center gap-1 font-sans">
+                    <DollarSign className="w-4 h-4 text-app-pink" />
+                    {formatCOP(selectedService.price)}
+                  </span>
+                </div>
+              </div>
+
+              <div className="pt-4 flex gap-2 border-t border-app-gray-100">
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={<Pencil />}
+                  fullWidth
+                  onClick={() => openEditModal(selectedService)}
+                >
+                  Editar Parámetros
+                </Button>
+                <Button
+                  variant="danger"
+                  size="sm"
+                  icon={<Trash2 />}
+                  onClick={() => handleDelete(selectedService.id)}
+                >
+                  Eliminar
+                </Button>
               </div>
             </div>
-
-            <div className="pt-4 flex gap-2 border-t border-app-gray-100">
-              <Button
-                variant="secondary"
-                size="sm"
-                icon={<Pencil />}
-                fullWidth
-                onClick={() => openEditModal(selectedService)}
-              >
-                Editar Parámetros
-              </Button>
-              <Button
-                variant="danger"
-                size="sm"
-                icon={<Trash2 />}
-                onClick={() => handleDelete(selectedService.id)}
-              >
-                Eliminar
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+          )}
+        </Modal>
+      </div>
 
       {/* CREATE / EDIT MODAL */}
       <Modal

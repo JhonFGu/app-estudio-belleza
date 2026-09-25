@@ -17,20 +17,35 @@ export default async function handler(req: any, res: any) {
   try {
     const urlObj = new URL(req.url || '', `http://${req.headers.host || 'localhost'}`);
     const period = req.query?.period || urlObj.searchParams.get('period') || 'all';
+    const reqStartDate = req.query?.startDate || urlObj.searchParams.get('startDate');
+    const reqEndDate = req.query?.endDate || urlObj.searchParams.get('endDate');
 
     const now = new Date();
     let startDate: Date | null = null;
+    let endDate: Date | null = null;
 
     if (period === 'day') {
-      startDate = new Date();
-      startDate.setHours(0, 0, 0, 0);
+      startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
     } else if (period === 'month') {
-      startDate = new Date(now.getFullYear(), now.getMonth(), 1);
+      startDate = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), now.getMonth() + 1, 0, 23, 59, 59, 999);
     } else if (period === 'year') {
-      startDate = new Date(now.getFullYear(), 0, 1);
+      startDate = new Date(now.getFullYear(), 0, 1, 0, 0, 0, 0);
+      endDate = new Date(now.getFullYear(), 11, 31, 23, 59, 59, 999);
+    } else if (period === 'custom') {
+      if (reqStartDate) {
+        const [y, m, d] = reqStartDate.split('-').map(Number);
+        startDate = new Date(y, m - 1, d, 0, 0, 0, 0);
+      }
+      if (reqEndDate) {
+        const [y, m, d] = reqEndDate.split('-').map(Number);
+        endDate = new Date(y, m - 1, d, 23, 59, 59, 999);
+      }
     } else {
       // 'all' (por defecto): Histórico completo
       startDate = null;
+      endDate = null;
     }
 
     const startOfToday = new Date();
@@ -38,9 +53,16 @@ export default async function handler(req: any, res: any) {
     const endOfToday = new Date();
     endOfToday.setHours(23, 59, 59, 999);
 
-    const txDateFilter = startDate ? gte(transactions.createdAt, startDate) : sql`1=1`;
-    const apptDateFilter = startDate ? gte(appointments.startTime, startDate) : sql`1=1`;
-    const clientDateFilter = startDate ? gte(clients.createdAt, startDate) : sql`1=1`;
+    const buildDateFilter = (dateCol: any) => {
+      const conds = [];
+      if (startDate) conds.push(gte(dateCol, startDate));
+      if (endDate) conds.push(lte(dateCol, endDate));
+      return conds.length > 0 ? and(...conds) : sql`1=1`;
+    };
+
+    const txDateFilter = buildDateFilter(transactions.createdAt);
+    const apptDateFilter = buildDateFilter(appointments.startTime);
+    const clientDateFilter = buildDateFilter(clients.createdAt);
 
     // Parallelize all independent database queries for maximum performance
     const [
@@ -278,6 +300,60 @@ export default async function handler(req: any, res: any) {
         expenses: data.expenses,
         netProfit: data.sales - data.expenses,
       }));
+    } else if (period === 'custom' && startDate && endDate) {
+      const diffDays = Math.ceil((endDate.getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 31) {
+        // Group by individual days in the selected custom range
+        const daysMap: Record<string, { label: string; sales: number; expenses: number }> = {};
+        const cur = new Date(startDate);
+        while (cur <= endDate) {
+          const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}-${String(cur.getDate()).padStart(2, '0')}`;
+          const label = `${cur.getDate()} ${cur.toLocaleString('es-ES', { month: 'short' })}`;
+          daysMap[key] = { label, sales: 0, expenses: 0 };
+          cur.setDate(cur.getDate() + 1);
+        }
+        periodTrans.forEach((t) => {
+          const d = new Date(t.createdAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+          const val = parseFloat(t.amount || '0');
+          if (daysMap[key]) {
+            if (t.type === 'sale' || t.type === 'abono') daysMap[key].sales += val;
+            else if (t.type === 'expense') daysMap[key].expenses += val;
+          }
+        });
+        chartFlow = Object.values(daysMap).map((data) => ({
+          label: data.label,
+          sales: data.sales,
+          expenses: data.expenses,
+          netProfit: data.sales - data.expenses,
+        }));
+      } else {
+        // Group by months in the selected custom range
+        const monthMap: Record<string, { label: string; sales: number; expenses: number }> = {};
+        const cur = new Date(startDate.getFullYear(), startDate.getMonth(), 1);
+        const endMonth = new Date(endDate.getFullYear(), endDate.getMonth(), 1);
+        while (cur <= endMonth) {
+          const key = `${cur.getFullYear()}-${String(cur.getMonth() + 1).padStart(2, '0')}`;
+          const label = `${cur.toLocaleString('es-ES', { month: 'short' })} ${cur.getFullYear()}`;
+          monthMap[key] = { label, sales: 0, expenses: 0 };
+          cur.setMonth(cur.getMonth() + 1);
+        }
+        periodTrans.forEach((t) => {
+          const d = new Date(t.createdAt);
+          const key = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}`;
+          const val = parseFloat(t.amount || '0');
+          if (monthMap[key]) {
+            if (t.type === 'sale' || t.type === 'abono') monthMap[key].sales += val;
+            else if (t.type === 'expense') monthMap[key].expenses += val;
+          }
+        });
+        chartFlow = Object.values(monthMap).map((data) => ({
+          label: data.label,
+          sales: data.sales,
+          expenses: data.expenses,
+          netProfit: data.sales - data.expenses,
+        }));
+      }
     } else {
       // Default: 'year' or 'all' - 12 Months of the Year (Ene, Feb, Mar, Abr, May, Jun, Jul, Ago, Sep, Oct, Nov, Dic)
       const monthLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];

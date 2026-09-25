@@ -59,6 +59,9 @@ export const HistoryPage: React.FC = () => {
       const matched = transactions.find((t: any) => t.appointmentId === appointmentTxFilter);
       if (matched) {
         setSelectedTx(matched);
+        if (window.innerWidth < 1280) {
+          setShowDetailModal(true);
+        }
       }
       setAppointmentTxFilter(null);
     }
@@ -164,7 +167,12 @@ export const HistoryPage: React.FC = () => {
                 return (
                   <tr
                     key={tx.id}
-                    onClick={() => { setSelectedTx(tx); setShowDetailModal(true); }}
+                    onClick={() => {
+                      setSelectedTx(tx);
+                      if (window.innerWidth < 1280) {
+                        setShowDetailModal(true);
+                      }
+                    }}
                     className={`border-b border-app-gray-50 hover:bg-app-gray-50/50 cursor-pointer transition-colors ${
                       isSelected ? 'bg-app-mint-50/30' : ''
                     }`}
@@ -284,79 +292,81 @@ export const HistoryPage: React.FC = () => {
       </div>
 
       {/* Mobile: Detalle de factura como modal fullscreen */}
-      <Modal
-        isOpen={showDetailModal}
-        onClose={() => setShowDetailModal(false)}
-        title={`Ticket #${selectedTx?.id.slice(0, 8).toUpperCase() || ''}`}
-        icon={<Receipt />}
-        fullscreen
-      >
-        {selectedTx && (
-          <div className="space-y-4 text-left">
-            <div className="pb-4 border-b border-app-gray-100">
-              <Badge variant="success">Pagado / Facturado</Badge>
-              <p className="text-[10px] text-app-gray-500 mt-0.5">
-                {format(new Date(selectedTx.createdAt), "eeee, d 'de' MMMM yyyy", { locale: es })}
-              </p>
-            </div>
+      <div className="xl:hidden">
+        <Modal
+          isOpen={showDetailModal}
+          onClose={() => setShowDetailModal(false)}
+          title={`Ticket #${selectedTx?.id.slice(0, 8).toUpperCase() || ''}`}
+          icon={<Receipt />}
+          fullscreen
+        >
+          {selectedTx && (
+            <div className="space-y-4 text-left">
+              <div className="pb-4 border-b border-app-gray-100">
+                <Badge variant="success">Pagado / Facturado</Badge>
+                <p className="text-[10px] text-app-gray-500 mt-0.5">
+                  {format(new Date(selectedTx.createdAt), "eeee, d 'de' MMMM yyyy", { locale: es })}
+                </p>
+              </div>
 
-            <div className="space-y-4 text-xs text-app-text-secondary">
-              <div className="flex items-center gap-3 bg-app-gray-50 p-3 rounded-2xl border border-app-gray-150">
-                <User className="w-4.5 h-4.5 text-app-gray-550" />
+              <div className="space-y-4 text-xs text-app-text-secondary">
+                <div className="flex items-center gap-3 bg-app-gray-50 p-3 rounded-2xl border border-app-gray-150">
+                  <User className="w-4.5 h-4.5 text-app-gray-550" />
+                  <div>
+                    <p className="text-[9px] text-app-gray-500 font-bold uppercase">Cliente Vinculado</p>
+                    <p className="font-bold text-app-text-primary">{selectedTx.client?.name || 'Cliente Walk-in'}</p>
+                  </div>
+                </div>
+
                 <div>
-                  <p className="text-[9px] text-app-gray-500 font-bold uppercase">Cliente Vinculado</p>
-                  <p className="font-bold text-app-text-primary">{selectedTx.client?.name || 'Cliente Walk-in'}</p>
+                  <h5 className="text-[9px] font-bold text-app-gray-500 uppercase tracking-wider mb-2">Desglose de Tratamientos y Productos</h5>
+                  <div className="space-y-2">
+                    {selectedTx.items?.map((item: any, idx: number) => (
+                      <div key={idx} className="p-3 bg-white border border-app-gray-200 rounded-xl shadow-sm space-y-1.5">
+                        <div className="flex justify-between items-center">
+                          <span className="font-bold text-app-text-primary">
+                            {item.service?.name || item.product?.name || 'Ítem'} (x{item.quantity || 1})
+                          </span>
+                          <span className="font-extrabold text-app-text-primary">{formatCOP(item.unitPrice)}</span>
+                        </div>
+                        <div className="flex justify-between items-center text-[10px] text-app-gray-500 font-semibold border-t border-app-gray-50 pt-1">
+                          <span>Por: {item.collaborator?.name || 'Sin especialista'}</span>
+                          <span className="text-app-mint font-bold">Comisión: {formatCOP(item.commissionPaid)}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+
+                <div className="pt-3 border-t border-app-gray-100 space-y-2 text-xs font-semibold">
+                  <div className="flex justify-between">
+                    <span>Subtotal:</span>
+                    <span className="text-app-text-primary">{formatCOP(parseFloat(selectedTx.amount) * 0.81)}</span>
+                  </div>
+                  <div className="flex justify-between text-app-gray-500">
+                    <span>IVA (19%):</span>
+                    <span>{formatCOP(parseFloat(selectedTx.amount) * 0.19)}</span>
+                  </div>
+                  <div className="flex justify-between text-sm font-extrabold border-t border-app-gray-100 pt-2 text-app-text-primary">
+                    <span>Total Facturado:</span>
+                    <span>{formatCOP(selectedTx.amount)}</span>
+                  </div>
                 </div>
               </div>
 
-              <div>
-                <h5 className="text-[9px] font-bold text-app-gray-500 uppercase tracking-wider mb-2">Desglose de Tratamientos y Productos</h5>
-                <div className="space-y-2">
-                  {selectedTx.items?.map((item: any, idx: number) => (
-                    <div key={idx} className="p-3 bg-white border border-app-gray-200 rounded-xl shadow-sm space-y-1.5">
-                      <div className="flex justify-between items-center">
-                        <span className="font-bold text-app-text-primary">
-                          {item.service?.name || item.product?.name || 'Ítem'} (x{item.quantity || 1})
-                        </span>
-                        <span className="font-extrabold text-app-text-primary">{formatCOP(item.unitPrice)}</span>
-                      </div>
-                      <div className="flex justify-between items-center text-[10px] text-app-gray-500 font-semibold border-t border-app-gray-50 pt-1">
-                        <span>Por: {item.collaborator?.name || 'Sin especialista'}</span>
-                        <span className="text-app-mint font-bold">Comisión: {formatCOP(item.commissionPaid)}</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              <div className="pt-3 border-t border-app-gray-100 space-y-2 text-xs font-semibold">
-                <div className="flex justify-between">
-                  <span>Subtotal:</span>
-                  <span className="text-app-text-primary">{formatCOP(parseFloat(selectedTx.amount) * 0.81)}</span>
-                </div>
-                <div className="flex justify-between text-app-gray-500">
-                  <span>IVA (19%):</span>
-                  <span>{formatCOP(parseFloat(selectedTx.amount) * 0.19)}</span>
-                </div>
-                <div className="flex justify-between text-sm font-extrabold border-t border-app-gray-100 pt-2 text-app-text-primary">
-                  <span>Total Facturado:</span>
-                  <span>{formatCOP(selectedTx.amount)}</span>
-                </div>
+              <div className="pt-3 border-t border-app-gray-200">
+                <Button
+                  icon={<Eye />}
+                  fullWidth
+                  onClick={() => setIsTicketModalOpen(true)}
+                >
+                  Ver Factura en Tirilla (80mm)
+                </Button>
               </div>
             </div>
-
-            <div className="pt-3 border-t border-app-gray-200">
-              <Button
-                icon={<Eye />}
-                fullWidth
-                onClick={() => setIsTicketModalOpen(true)}
-              >
-                Ver Factura en Tirilla (80mm)
-              </Button>
-            </div>
-          </div>
-        )}
-      </Modal>
+          )}
+        </Modal>
+      </div>
 
       {/* MODAL VER / PREVISUALIZAR TIRILLA TÉRMICA */}
       <Modal

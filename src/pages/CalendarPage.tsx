@@ -142,9 +142,9 @@ export const CalendarPage: React.FC = () => {
 
   const openCreateModal = (specialistId = '', time = '09:00', date: Date = selectedDate) => {
     setSelectedDate(date);
-    setFormClientId(clients[0]?.id || '');
-    setFormSpecialistId(specialistId || collaborators[0]?.id || '');
-    setFormServiceId(services[0]?.id || '');
+    setFormClientId('');
+    setFormSpecialistId(specialistId || '');
+    setFormServiceId('');
     setFormTime(time);
     setFormNotes('');
     setFormRoom('Cabina 1');
@@ -198,7 +198,7 @@ export const CalendarPage: React.FC = () => {
   const handleCreateAppointment = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!formClientId || !formSpecialistId || !formServiceId || !formTime) {
-      alert('Campos incompletos');
+      alert('Por favor complete todos los campos obligatorios (Cliente, Especialista, Servicio y Hora).');
       return;
     }
 
@@ -310,9 +310,11 @@ export const CalendarPage: React.FC = () => {
 
   const handleServiceSearchChange = (val: string) => {
     setServiceSearchQuery(val);
-    const matched = services.filter(s => s.name.toLowerCase().includes(val.toLowerCase()));
-    if (matched.length > 0) {
-      setFormServiceId(matched[0].id);
+    if (val.trim()) {
+      const matched = services.filter(s => s.name.toLowerCase().includes(val.toLowerCase()));
+      if (matched.length > 0) {
+        setFormServiceId(matched[0].id);
+      }
     }
   };
 
@@ -750,7 +752,9 @@ export const CalendarPage: React.FC = () => {
                 value={formClientId}
                 onChange={(e) => setFormClientId(e.target.value)}
                 className="w-full px-3 py-2 border border-app-gray-200 rounded-xl text-xs bg-transparent outline-none focus:border-app-mint font-semibold text-app-text-primary"
+                required
               >
+                <option value="">-- Seleccione un cliente --</option>
                 {clients.map(c => (
                   <option key={c.id} value={c.id}>{c.name}</option>
                 ))}
@@ -765,7 +769,9 @@ export const CalendarPage: React.FC = () => {
               value={formSpecialistId}
               onChange={(e) => setFormSpecialistId(e.target.value)}
               className="w-full px-3 py-2 border border-app-gray-200 rounded-xl text-xs bg-transparent outline-none focus:border-app-mint font-semibold text-app-text-primary"
+              required
             >
+              <option value="">-- Seleccione un especialista --</option>
               {collaborators.map(cb => (
                 <option key={cb.id} value={cb.id}>{cb.name}</option>
               ))}
@@ -795,9 +801,11 @@ export const CalendarPage: React.FC = () => {
                   setServiceSearchQuery('');
                 }}
                 className="w-full px-3 py-2 border border-app-gray-200 rounded-xl text-xs bg-transparent outline-none focus:border-app-mint font-semibold text-app-text-primary"
+                required
               >
+                <option value="">-- Seleccione un servicio / tratamiento --</option>
                 {filteredFormServices.length === 0 ? (
-                  <option value="">-- No se encontraron servicios --</option>
+                  <option value="" disabled>-- No se encontraron servicios --</option>
                 ) : (
                   filteredFormServices.map(s => (
                     <option key={s.id} value={s.id}>{s.name} - ({s.duration} min, {formatCOP(s.price)})</option>

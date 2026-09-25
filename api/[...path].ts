@@ -20,6 +20,8 @@ import usersHandler from '../src/handlers/users.js';
 import loginHandler from '../src/handlers/auth/login.js';
 import registerHandler from '../src/handlers/auth/register.js';
 import inviteHandler from '../src/handlers/auth/invite.js';
+import hubApiHandler from '../src/handlers/hub-api.js';
+import integrationAdminHandler from '../src/handlers/integration-admin.js';
 
 const routes: Record<string, any> = {
   'accounts-payable': accountsPayableHandler,
@@ -48,7 +50,7 @@ const routes: Record<string, any> = {
 
 export default async function handler(req: any, res: any) {
   res.setHeader('Access-Control-Allow-Origin', '*');
-  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, x-tenant-id');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization, X-Api-Key, Idempotency-Key, x-tenant-id');
   res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
 
   if (req.method === 'OPTIONS') {
@@ -65,6 +67,13 @@ export default async function handler(req: any, res: any) {
   }
 
   const routeHandler = routes[route];
+
+  if (route === 'v1' || route.startsWith('v1/')) {
+    req.query.path = route;
+    return hubApiHandler(req, res);
+  }
+
+  if (route === 'integration-admin') return integrationAdminHandler(req, res);
 
   if (!routeHandler) {
     return res.status(404).json({ error: `Ruta /api/${route} no encontrada` });

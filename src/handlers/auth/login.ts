@@ -1,5 +1,7 @@
 import { db } from '../../db/index.js';
 import { users, tenants } from '../../db/schema.js';
+import { authSessions } from '../../db/schema.js';
+import { createHash, randomBytes } from 'node:crypto';
 import { eq } from 'drizzle-orm';
 import { verifyPassword } from '../../utils/auth.js';
 
@@ -26,7 +28,7 @@ export default async function handler(req: any, res: any) {
     const userList = await db.select().from(users).where(eq(users.email, email));
     const foundUser = userList[0];
 
-    if (!foundUser || !foundUser.passwordHash) {
+    if (!foundUser || !foundUser.passwordHash || !foundUser.active) {
       return res.status(401).json({ error: 'Credenciales inválidas.' });
     }
 
@@ -35,9 +37,15 @@ export default async function handler(req: any, res: any) {
     }
 
     const tenantList = await db.select().from(tenants).where(eq(tenants.id, foundUser.tenantId));
+    const sessionToken = `sess_${randomBytes(32).toString('hex')}`;
+    await db.insert(authSessions).values({
+      userId: foundUser.id,
+      tokenHash: createHash('sha256').update(sessionToken).digest('hex'),
+      expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000),
+    });
     const { passwordHash: _, ...safeUser } = foundUser;
 
-    return res.status(200).json({ user: safeUser, tenant: tenantList[0] || null });
+    return res.status(200).json({ user: safeUser, tenant: tenantList[0] || null, sessionToken });
   } catch (error: any) {
     return res.status(500).json({ error: error.message || 'Error al iniciar sesión.' });
   }

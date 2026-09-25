@@ -232,7 +232,7 @@ export const useAppStore = create<AppStore>((set, get) => ({
       if (!res.ok) { const err = await res.json(); return { success: false, error: err.error || 'Credenciales inválidas.' }; }
       const data = await res.json();
       set({ currentTenant: data.tenant, currentUser: data.user });
-      localStorage.setItem('aura_session', JSON.stringify({ userId: data.user.id, tenantId: data.tenant?.id }));
+          localStorage.setItem('aura_session', JSON.stringify({ userId: data.user.id, tenantId: data.tenant?.id, sessionToken: data.sessionToken }));
       get().triggerRefresh();
       return { success: true };
     } catch (err: any) {

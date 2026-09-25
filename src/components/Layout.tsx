@@ -25,6 +25,7 @@ import {
   Camera,
   ShieldCheck,
   LogOut,
+  Plug,
 } from 'lucide-react';
 import { Badge, IconButton } from '../components/ui';
 
@@ -98,6 +99,7 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { id: 'finance', name: 'Finanzas', icon: DollarSign },
     { id: 'users', name: 'Usuarios y Accesos', icon: ShieldCheck },
     { id: 'company', name: 'Configuración', icon: Building2 },
+    { id: 'integrations', name: 'Hub de agentes', icon: Plug },
   ];
 
   // Filtrar menú visible estrictamente según el usuario actual (rol + matriz de permisos)
