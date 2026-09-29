@@ -2,7 +2,7 @@ import { db } from '../../db/index.js';
 import { users, tenants } from '../../db/schema.js';
 import { authSessions } from '../../db/schema.js';
 import { createHash, randomBytes } from 'node:crypto';
-import { eq } from 'drizzle-orm';
+import { eq, sql } from 'drizzle-orm';
 import { verifyPassword } from '../../utils/auth.js';
 
 export default async function handler(req: any, res: any) {
@@ -20,12 +20,13 @@ export default async function handler(req: any, res: any) {
 
   try {
     const { email, password } = req.body;
+    const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
 
-    if (!email || !password) {
+    if (!normalizedEmail || !password) {
       return res.status(400).json({ error: 'Correo y contraseña son obligatorios.' });
     }
 
-    const userList = await db.select().from(users).where(eq(users.email, email));
+    const userList = await db.select().from(users).where(sql`lower(trim(${users.email})) = ${normalizedEmail}`);
     const foundUser = userList[0];
 
     if (!foundUser || !foundUser.passwordHash || !foundUser.active) {
