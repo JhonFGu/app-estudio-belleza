@@ -1,0 +1,263 @@
+openapi: 3.0.3
+info:
+  title: Miesbe Hub Inbox Projection API
+  version: 0.1.0-mvp
+  description: |
+    Miesbe endpoints for the Hub inbox projection. The Hub remains the authority for
+    conversations and WhatsApp delivery. Outbound Hub requests are performed server-side.
+servers:
+  - url: /
+paths:
+  /api/hub/events:
+    post:
+      summary: Receive a signed Hub event
+      description: Requires the exact raw JSON request body and a tenant-specific HMAC secret. The Vercel function is deployed from api/hub/events.ts with automatic body parsing disabled; the event is persisted only after active tenant association lookup and signature validation.
+      security:
+        - HubEventHmac: []
+      parameters:
+        - in: header
+          name: X-Hub-Timestamp
+          required: true
+          schema: { type: string, pattern: '^[0-9]+$' }
+        - in: header
+          name: X-Hub-Signature
+          required: true
+          schema: { type: string, pattern: '^sha256=[a-fA-F0-9]{64}$' }
+        - in: header
+          name: X-Hub-Event-Id
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/HubEvent' }
+      responses:
+        '202': { description: Event persisted and applied to the local projection }
+        '200':
+          description: Event already processed with the same immutable snapshot
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventAccepted' }
+        '202':
+          description: Event persisted and applied to the local projection
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/EventAccepted' }
+        '400': { description: Invalid JSON/raw body }
+        '401': { description: Invalid signature or stale timestamp }
+        '409': { description: event_id was already used with a different raw-body snapshot }
+        '404':
+          description: Active tenant association not found; no event is persisted
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '422': { description: Unsupported or invalid event }
+        '503': { description: Transient persistence/processing error; retry same event_id }
+  /api/hub/inbox:
+    get:
+      summary: List Hub-projected conversations or read one conversation
+      security: [{ MiesbeSession: [] }]
+      parameters:
+        - in: header
+          name: X-Session-Token
+          required: true
+          schema: { type: string }
+        - in: query
+          name: conversationId
+          description: Hub conversation ID; returns the conversation and its projected messages.
+          schema: { type: string }
+        - in: query
+          name: clientId
+          description: Optional Miesbe client UUID filter.
+          schema: { type: string, format: uuid }
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200':
+          description: Tenant-scoped conversation list or history, refreshed from Hub and cached locally
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/InboxResponse' }
+        '401': { description: Missing/expired Miesbe session }
+        '403': { description: User cannot read Messages }
+        '404': { description: Conversation not found in this tenant }
+    post:
+      summary: Request a human reply or takeover action
+      description: |
+        Requires messages.crear for reply/takeover and administrator role for conversation_delete.
+        Miesbe calls Hub using a server-side Bearer key. The Hub is responsible for persistence
+        and Evolution delivery; a 202/accepted response is not a WhatsApp delivery receipt.
+      security: [{ MiesbeSession: [] }]
+      parameters:
+        - in: header
+          name: X-Session-Token
+          required: true
+          schema: { type: string }
+        - in: header
+          name: Idempotency-Key
+          required: false
+          description: Required for action=reply; reused unchanged after ambiguous timeouts.
+          schema: { type: string, minLength: 8, maxLength: 200 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [action, conversationId]
+              properties:
+                action: { type: string, enum: [reply, takeover_start, takeover_release, conversation_delete] }
+                conversationId: { type: string }
+                content: { type: string, maxLength: 4000 }
+                reason: { type: string }
+      responses:
+        '200': { description: Hub confirmed an idempotent prior action or completed takeover transition }
+        '201': { description: Takeover started }
+        '202': { description: Hub accepted the human message; delivery can be sent or unknown }
+        '401': { description: Missing/expired Miesbe session }
+        '403': { description: Explicit messages.crear permission required }
+        '404': { description: Conversation not found in this tenant }
+        '409': { description: Tenant integration is disabled }
+        '422': { description: Invalid action or body }
+        '502': { description: Hub/Evolution reported a definitive send failure; response includes the failed Hub message ID }
+        '503': { description: Hub unavailable or key/base URL not configured; no success is implied }
+        '504': { description: Hub request timed out; reply may be ambiguous; retry only with the same Idempotency-Key }
+  /api/messages:
+    get:
+      deprecated: true
+      summary: Retired local message store
+      responses:
+        '410': { description: Use /api/hub/inbox }
+    post:
+      deprecated: true
+      summary: Retired local message write
+      responses:
+        '410': { description: Miesbe must not create official messages locally }
+components:
+  securitySchemes:
+    HubEventHmac:
+      type: apiKey
+      in: header
+      name: X-Hub-Signature
+      description: HMAC-SHA256(signingSecret, `${timestamp}.${rawBody}`); per-tenant secret, 5-minute tolerance; X-Hub-Event-Id must match the envelope.
+    MiesbeSession:
+      type: apiKey
+      in: header
+      name: X-Session-Token
+      description: Existing Miesbe user session; tenant is derived server-side.
+  schemas:
+    ErrorResponse:
+      type: object
+      required: [error]
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+    EventAccepted:
+      type: object
+      required: [accepted, duplicate]
+      properties:
+        accepted: { type: boolean, enum: [true] }
+        duplicate: { type: boolean }
+    HubEvent:
+      type: object
+      required: [schema_version, event_id, event_type, tenant_id, conversation_id, sequence, occurred_at, data]
+      properties:
+        schema_version: { type: integer, enum: [1] }
+        event_id: { type: string }
+        event_type:
+          type: string
+          enum: [conversation.created, message.created, message.delivery_updated, conversation.takeover_started, conversation.takeover_released, conversation.deleted]
+        tenant_id: { type: string, format: uuid, description: Hub tenant UUID; checked against the configured association after signature authentication }
+        conversation_id: { type: string, format: uuid }
+        sequence: { type: integer, minimum: 1, description: Strictly monotonic per conversation }
+        occurred_at: { type: string, format: date-time }
+        data:
+          type: object
+          description: Payload fields depend on event_type; Hub reference contains examples.
+          properties:
+            contact_id: { type: string, format: uuid }
+            status: { type: string }
+            contact:
+              type: object
+              properties:
+                id: { type: string, format: uuid }
+                display_name: { type: string, nullable: true }
+                phone: { type: string, nullable: true }
+            message_id: { type: string, format: uuid }
+            direction: { type: string, enum: [inbound, outbound] }
+            author_type: { type: string }
+            author_id: { type: string, nullable: true }
+            content: { type: string, nullable: true }
+            provider_message_id: { type: string, nullable: true }
+            created_at: { type: string, format: date-time }
+            takeover_id: { type: string, format: uuid }
+            assigned_to: { type: string, nullable: true }
+            deleted_at: { type: string, format: date-time }
+          additionalProperties: false
+    InboxResponse:
+      type: object
+      properties:
+        conversations: { type: array, items: { $ref: '#/components/schemas/ConversationProjection' } }
+        conversation: { $ref: '#/components/schemas/ConversationProjection' }
+        messages: { type: array, items: { $ref: '#/components/schemas/MessageProjection' } }
+        page: { type: object, nullable: true, properties: { limit: { type: integer }, hasMore: { type: boolean }, nextCursor: { type: string, nullable: true } } }
+        source: { type: string, enum: [hub, projection] }
+        stale: { type: boolean }
+    ConversationProjection:
+      type: object
+      properties:
+        hubConversationId: { type: string }
+        hubContactId: { type: string, nullable: true }
+        contactName: { type: string, nullable: true }
+        contactPhone: { type: string, nullable: true }
+        status: { type: string, enum: [bot_active, human_active, closed, resolved] }
+        handlingMode: { type: string, enum: [bot, human] }
+        lastMessageAt: { type: string, format: date-time, nullable: true }
+    MessageProjection:
+      type: object
+      properties:
+        hubMessageId: { type: string }
+        providerMessageId: { type: string, nullable: true }
+        direction: { type: string, enum: [inbound, outbound] }
+        authorType: { type: string }
+        authorId: { type: string, nullable: true }
+        content: { type: string, nullable: true }
+        deliveryStatus: { type: string, enum: [received, accepted, sent, failed, unknown, delivered, read] }
+        createdAtHub: { type: string, format: date-time }
+x-hub-upstream-contract:
+  description: |
+    These routes are called only by the Miesbe backend, never by the browser. See
+    prototipo/HUB-MIESBE-INTEGRATION.md for complete request/response examples and scopes.
+  baseUrlEnvironmentVariable: HUB_BASE_URL
+  tenantRef: UUID stored as hubTenantId in the Miesbe tenant association
+  authorization: Bearer API key stored encrypted per tenant
+  minimumScopes: [conversations:read, messages:write, takeover:manage, conversations:delete]
+  operations:
+    - method: GET
+      path: /api/v1/tenants/{tenantRef}/conversations
+      scope: conversations:read
+    - method: GET
+      path: /api/v1/tenants/{tenantRef}/conversations/{conversationId}/messages
+      scope: conversations:read
+    - method: POST
+      path: /api/v1/tenants/{tenantRef}/conversations/{conversationId}/messages
+      scope: messages:write
+      idempotencyHeader: Idempotency-Key
+    - method: POST
+      path: /api/v1/tenants/{tenantRef}/conversations/{conversationId}/takeover
+      scope: takeover:manage
+    - method: DELETE
+      path: /api/v1/tenants/{tenantRef}/conversations/{conversationId}/takeover
+      scope: takeover:manage
+    - method: DELETE
+      path: /api/v1/tenants/{tenantRef}/conversations/{conversationId}
+      scope: conversations:delete

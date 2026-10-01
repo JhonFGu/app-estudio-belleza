@@ -351,6 +351,85 @@ export const authSessions = pgTable('auth_sessions', {
   createdAt: timestamp('created_at').defaultNow().notNull(),
 }, (table) => ({ userIdx: index('auth_sessions_user_idx').on(table.userId) }));
 
+// Proyección no autoritativa del inbox Hub. Los secretos se cifran en servidor.
+export const hubTenantIntegrations = pgTable('hub_tenant_integrations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull().unique(),
+  hubTenantId: text('hub_tenant_id').notNull().unique(),
+  eventSecretCiphertext: text('event_secret_ciphertext').notNull(),
+  hubApiCredentialCiphertext: text('hub_api_credential_ciphertext'),
+  previousEventSecretCiphertext: text('previous_event_secret_ciphertext'),
+  previousSecretValidUntil: timestamp('previous_secret_valid_until'),
+  active: boolean('active').default(true).notNull(),
+  activatedAt: timestamp('activated_at').defaultNow().notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({ hubTenantIdx: index('hub_integrations_hub_tenant_idx').on(table.hubTenantId) }));
+
+export const hubConversations = pgTable('hub_conversations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  integrationId: uuid('integration_id').references(() => hubTenantIntegrations.id, { onDelete: 'cascade' }).notNull(),
+  hubConversationId: text('hub_conversation_id').notNull(),
+  hubContactId: text('hub_contact_id'),
+  takeoverId: text('takeover_id'),
+  assignedTo: text('assigned_to'),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'set null' }),
+  contactName: text('contact_name'),
+  contactPhone: text('contact_phone'),
+  status: text('status').notNull().default('bot_active'),
+  handlingMode: text('handling_mode').notNull().default('bot'),
+  lastMessageAt: timestamp('last_message_at'),
+  hubSequence: integer('hub_sequence'),
+  deletedAt: timestamp('deleted_at'),
+  retentionExpiresAt: timestamp('retention_expires_at').notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  tenantHubConversationUnique: uniqueIndex('hub_conversations_tenant_external_unique').on(table.tenantId, table.hubConversationId),
+  tenantLastMessageIdx: index('hub_conversations_tenant_last_message_idx').on(table.tenantId, table.lastMessageAt),
+}));
+
+export const hubConversationMessages = pgTable('hub_conversation_messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  conversationId: uuid('conversation_id').references(() => hubConversations.id, { onDelete: 'cascade' }).notNull(),
+  hubMessageId: text('hub_message_id').notNull(),
+  direction: text('direction').notNull(),
+  authorType: text('author_type').notNull(),
+  authorId: text('author_id'),
+  providerMessageId: text('provider_message_id'),
+  content: text('content'),
+  deliveryStatus: text('delivery_status').notNull().default('accepted'),
+  createdAtHub: timestamp('created_at_hub').notNull(),
+  deliveredAt: timestamp('delivered_at'),
+  hubSequence: integer('hub_sequence'),
+  redactedAt: timestamp('redacted_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+}, (table) => ({
+  tenantHubMessageUnique: uniqueIndex('hub_messages_tenant_external_unique').on(table.tenantId, table.hubMessageId),
+  conversationCreatedIdx: index('hub_messages_conversation_created_idx').on(table.conversationId, table.createdAtHub),
+}));
+
+export const hubInboxEvents = pgTable('hub_inbox_events', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  eventId: text('event_id').notNull(),
+  payloadHash: text('payload_hash').notNull(),
+  eventType: text('event_type').notNull(),
+  hubMessageId: text('hub_message_id'),
+  deliveryStatus: text('delivery_status'),
+  hubSequence: integer('hub_sequence'),
+  occurredAt: timestamp('occurred_at').notNull(),
+  receivedAt: timestamp('received_at').defaultNow().notNull(),
+  processedAt: timestamp('processed_at'),
+  dedupeExpiresAt: timestamp('dedupe_expires_at').notNull(),
+}, (table) => ({
+  tenantEventUnique: uniqueIndex('hub_inbox_events_tenant_event_unique').on(table.tenantId, table.eventId),
+  dedupeExpiryIdx: index('hub_inbox_events_dedupe_expiry_idx').on(table.dedupeExpiresAt),
+  messageStateIdx: index('hub_inbox_events_message_state_idx').on(table.tenantId, table.hubMessageId, table.hubSequence),
+}));
+
 export const transactionItemsRelations = relations(transactionItems, ({ one }) => ({
   transaction: one(transactions, {
     fields: [transactionItems.transactionId],
