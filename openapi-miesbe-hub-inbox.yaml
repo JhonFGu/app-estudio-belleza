@@ -11,7 +11,7 @@ paths:
   /api/hub/events:
     post:
       summary: Receive a signed Hub event
-      description: Requires the exact raw JSON request body and a tenant-specific HMAC secret. The Vercel function is deployed from api/hub/events.ts with automatic body parsing disabled; the event is persisted only after active tenant association lookup and signature validation.
+      description: Requires the exact raw JSON request body and a tenant-specific HMAC secret. The Vercel function is deployed from api/hub/events.ts with automatic body parsing disabled. Its runtime dependency src/utils/hub-inbox.ts must be included in the deployment bundle; the event is persisted only after active tenant association lookup and signature validation. A GET request returns 405 METHOD_NOT_ALLOWED. The endpoint does not yet have a verified end-to-end event delivery.
       security:
         - HubEventHmac: []
       parameters:
@@ -33,7 +33,6 @@ paths:
           application/json:
             schema: { $ref: '#/components/schemas/HubEvent' }
       responses:
-        '202': { description: Event persisted and applied to the local projection }
         '200':
           description: Event already processed with the same immutable snapshot
           content:
@@ -54,6 +53,17 @@ paths:
               schema: { $ref: '#/components/schemas/ErrorResponse' }
         '422': { description: Unsupported or invalid event }
         '503': { description: Transient persistence/processing error; retry same event_id }
+    get:
+      summary: Method probe (not an event delivery method)
+      description: The event receiver accepts POST only. This method is useful only to confirm route dispatch; a 405 indicates the function was invoked.
+      responses:
+        '405':
+          description: Function invoked; method not allowed
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ErrorResponse' }
+        '500':
+          description: Function initialization/invocation failure; no successful event reception is implied
   /api/hub/inbox:
     get:
       summary: List Hub-projected conversations or read one conversation

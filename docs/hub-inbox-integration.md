@@ -32,6 +32,12 @@ Errores de Hub v1: 401 API key ausente/inválida, 404 recurso/relación ausente,
 4. Miesbe presenta la proyección en `/api/hub/inbox` a usuarios con sesión Miesbe y permiso de lectura de Mensajes.
 5. Para contestar/takeover/borrar, la UI llama `POST /api/hub/inbox`; servidor deriva tenant de la sesión, verifica permiso y conversación y llama al endpoint Hub exacto con la key Bearer cifrada y scope correspondiente.
 
+### Estado de verificación de despliegue
+
+- El commit del endpoint se desplegó en Production en Vercel (`dpl_9g5VpZFc7Mcc3w4teF5iU2FjBqSh`). Un `GET /api/hub/events` en esa versión devolvió HTTP 500 `FUNCTION_INVOCATION_FAILED`; los build logs indicaron que `api/hub/events.ts` no podía resolver `../../src/utils/hub-inbox.js` porque `src/utils/hub-inbox.ts` no estaba en el commit.
+- Se corrige incluyendo el módulo de utilidad requerido en el seguimiento de Git. GET debe responder HTTP 405 con `{ "error": { "code": "METHOD_NOT_ALLOWED", "message": "Se acepta solo POST." } }` cuando la función inicializa correctamente.
+- Esta actualización no hace una invocación a Production, POST, ni consulta/escritura de base de datos. El estado de la asociación tenant↔Hub no se ha comprobado en esta tarea. E2E permanece **sin verificar** hasta confirmar un evento firmado válido y una respuesta humana comprobada en el Hub.
+
 ## Autenticación y secretos
 
 - Cada tenant dispone de un secreto aleatorio independiente para HMAC Hub→Miesbe.
