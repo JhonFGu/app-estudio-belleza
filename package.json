@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "typecheck": "tsc -b",
+    "test": "node --experimental-strip-types --test tests/hub-inbox.test.mjs tests/whatsapp-intent.test.mjs",
     "lint": "oxlint",
     "preview": "vite preview"
   },

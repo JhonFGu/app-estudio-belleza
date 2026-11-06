@@ -8,7 +8,7 @@ export const TAB_TO_MODULE: Record<string, string> = {
   pos: 'pos_caja',
   calendar: 'citas',
   crm: 'clientes',
-  messages: 'clientes',
+  messages: 'mensajes',
   schedule: 'colaboradores',
   collaborators: 'colaboradores',
   users: 'colaboradores', // Usuarios y Accesos
@@ -18,6 +18,7 @@ export const TAB_TO_MODULE: Record<string, string> = {
   finance: 'finanzas',
   company: 'configuracion', // Configuración de Empresa
   integrations: 'configuracion',
+  whatsapp: 'configuracion',
 };
 
 /**
@@ -28,6 +29,17 @@ export function canAccessTab(user: User | null, tabId: string): boolean {
 
   // 1. El Administrador tiene acceso total a todos los módulos
   if (user.role === 'admin') return true;
+
+  // WhatsApp instances, agent instructions and integration credentials are tenant-admin configuration.
+  if (tabId === 'whatsapp' || tabId === 'integrations') return false;
+
+  // Compatibilidad: antes el acceso a Mensajes heredaba el módulo Clientes.
+  if (tabId === 'messages') {
+    const messageRead = user.permissions?.mensajes?.leer;
+    if (typeof messageRead === 'boolean') return messageRead;
+    const legacyClientRead = user.permissions?.clientes?.leer;
+    if (typeof legacyClientRead === 'boolean') return legacyClientRead;
+  }
 
   // 2. Dashboard siempre es visible para cualquier usuario autenticado
   if (tabId === 'dashboard') return true;
@@ -46,14 +58,14 @@ export function canAccessTab(user: User | null, tabId: string): boolean {
   switch (user.role) {
     case 'receptionist':
       // La recepcionista NO tiene acceso a finanzas, historial, gestión de usuarios ni configuración de empresa por defecto
-      if (tabId === 'finance' || tabId === 'history' || tabId === 'users' || tabId === 'company') {
+       if (tabId === 'finance' || tabId === 'history' || tabId === 'users' || tabId === 'company' || tabId === 'whatsapp' || tabId === 'integrations') {
         return false;
       }
       return true;
 
     case 'specialist':
       // El especialista solo ve agenda, clientes, tratamientos, mensajes y su horario
-      if (tabId === 'finance' || tabId === 'history' || tabId === 'users' || tabId === 'pos' || tabId === 'collaborators' || tabId === 'company') {
+       if (tabId === 'finance' || tabId === 'history' || tabId === 'users' || tabId === 'pos' || tabId === 'collaborators' || tabId === 'company' || tabId === 'whatsapp' || tabId === 'integrations') {
         return false;
       }
       return true;

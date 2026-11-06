@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAppStore, type Tenant } from '../store/useAppStore';
 import {
   Building2,
@@ -17,6 +17,7 @@ import {
   Edit,
   Trash2,
   Plus,
+  Bot,
 } from 'lucide-react';
 import { Button, Card, Input, Select, Badge, PageHeader, Modal, Tabs } from '../components/ui';
 import { formatCOP } from '../utils/format';
@@ -58,13 +59,29 @@ const REWARD_TYPE_LABELS: Record<string, string> = {
   free_service: 'Servicio gratis',
 };
 
+function getSessionToken() {
+  try { return JSON.parse(localStorage.getItem('aura_session') || '{}').sessionToken || ''; }
+  catch { return ''; }
+}
+
 export const CompanySettingsPage: React.FC = () => {
-  const { currentTenant, tenants } = useAppStore();
+  const { currentTenant, tenants, currentUser } = useAppStore();
 
   const [formData, setFormData] = useState<Partial<Tenant>>({});
   const [saving, setSaving] = useState(false);
   const [successMsg, setSuccessMsg] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<'company' | 'loyalty'>('company');
+  const [activeTab, setActiveTab] = useState<'company' | 'loyalty' | 'agent'>('company');
+  const [agentSettings, setAgentSettings] = useState({
+    enabled: true,
+    tone: 'amable y profesional',
+    greeting: '',
+    businessContext: '',
+    instructions: '',
+    bookingInstructions: '',
+    handoffMessage: 'Te comunicaré con recepción para ayudarte.',
+  });
+  const [savingAgentSettings, setSavingAgentSettings] = useState(false);
+  const [agentSettingsMessage, setAgentSettingsMessage] = useState<string | null>(null);
 
   const [loyaltyConfig, setLoyaltyConfig] = useState<LoyaltyConfig>({
     pointsPerCurrencyUnit: 1,
@@ -88,19 +105,40 @@ export const CompanySettingsPage: React.FC = () => {
   const [configSuccessMsg, setConfigSuccessMsg] = useState<string | null>(null);
   const [savingReward, setSavingReward] = useState(false);
 
-  useEffect(() => {
-    if (currentTenant) {
-      setFormData({ ...currentTenant });
-      loadLoyaltyData();
-    }
-  }, [currentTenant]);
-
   const tabs = [
     { id: 'company', label: 'Datos de la Empresa', icon: Building2 },
     { id: 'loyalty', label: 'Sistema de Fidelización', icon: Star },
+    ...(currentUser?.role === 'admin' ? [{ id: 'agent', label: 'Agente IA', icon: Bot }] : []),
   ] as const;
 
-  const loadLoyaltyData = async () => {
+  const loadAgentSettings = useCallback(async () => {
+    if (!currentTenant) return;
+    try {
+      const response = await fetch('/api/whatsapp/settings', { headers: { 'x-session-token': getSessionToken() } });
+      if (!response.ok) return;
+      const result = await response.json();
+      if (result.agentSettings) setAgentSettings((current) => ({ ...current, ...result.agentSettings }));
+    } catch { /* settings remain editable with safe defaults */ }
+  }, [currentTenant]);
+
+  const saveAgentSettings = async () => {
+    setSavingAgentSettings(true);
+    setAgentSettingsMessage(null);
+    try {
+      const response = await fetch('/api/whatsapp/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json', 'x-session-token': getSessionToken() },
+        body: JSON.stringify({ type: 'agent_settings', ...agentSettings }),
+      });
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.error?.message || 'No se pudo guardar el agente.');
+      setAgentSettingsMessage('Configuración del agente guardada.');
+    } catch (error: any) {
+      setAgentSettingsMessage(error.message || 'No se pudo guardar el agente.');
+    } finally { setSavingAgentSettings(false); }
+  };
+
+  const loadLoyaltyData = useCallback(async () => {
     if (!currentTenant) return;
     try {
       const headers = { 'x-tenant-id': currentTenant.id };
@@ -124,7 +162,14 @@ export const CompanySettingsPage: React.FC = () => {
     } catch (err) {
       console.error('Error al cargar datos de fidelizacion:', err);
     }
-  };
+  }, [currentTenant]);
+
+  useEffect(() => {
+    if (!currentTenant) return;
+    setFormData({ ...currentTenant });
+    void loadLoyaltyData();
+    void loadAgentSettings();
+  }, [currentTenant, loadLoyaltyData, loadAgentSettings]);
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
@@ -704,6 +749,32 @@ export const CompanySettingsPage: React.FC = () => {
         </div>
       </Modal>
       </>)}
+
+      {activeTab === 'agent' && (
+        <Card>
+          <div className="p-5 sm:p-6 border-b border-app-gray-100 bg-app-mint-50/30 flex items-center gap-4">
+            <div className="w-14 h-14 rounded-xl bg-app-mint-100 text-app-mint flex items-center justify-center flex-shrink-0"><Bot className="w-7 h-7" /></div>
+            <div><h3 className="font-bold text-app-text-primary text-base">Agente de WhatsApp</h3><p className="text-xs text-app-text-secondary mt-1">Contexto y reglas comerciales por centro. Las respuestas se orquestan mediante n8n.</p></div>
+          </div>
+          <div className="p-5 sm:p-6 space-y-5">
+            <label className="flex items-center justify-between gap-4 rounded-xl bg-app-gray-50 p-4">
+              <span><strong className="block text-sm">Atención automática activa</strong><span className="text-xs text-app-text-secondary">Al desactivar, el agente deja de responder conversaciones nuevas de este tenant.</span></span>
+              <input type="checkbox" checked={agentSettings.enabled} onChange={(e) => setAgentSettings({ ...agentSettings, enabled: e.target.checked })} className="w-5 h-5 accent-app-mint" />
+            </label>
+            <Input label="Tono del agente" value={agentSettings.tone} onChange={(e) => setAgentSettings({ ...agentSettings, tone: e.target.value })} placeholder="Amable y profesional" />
+            <label className="block text-sm font-semibold text-app-text-primary">Saludo inicial<textarea value={agentSettings.greeting} onChange={(e) => setAgentSettings({ ...agentSettings, greeting: e.target.value })} rows={2} maxLength={1000} className="mt-1.5 w-full rounded-xl border border-app-gray-200 p-3 text-sm font-normal outline-none focus:border-app-mint" placeholder="¿En qué tratamiento o servicio te gustaría recibir información?" /></label>
+            <label className="block text-sm font-semibold text-app-text-primary">Contexto comercial y del centro<textarea value={agentSettings.businessContext} onChange={(e) => setAgentSettings({ ...agentSettings, businessContext: e.target.value })} rows={4} maxLength={8000} className="mt-1.5 w-full rounded-xl border border-app-gray-200 p-3 text-sm font-normal outline-none focus:border-app-mint" placeholder="Describe especialidades, público, políticas y diferenciadores del centro." /></label>
+            <label className="block text-sm font-semibold text-app-text-primary">Instrucciones adicionales<textarea value={agentSettings.instructions} onChange={(e) => setAgentSettings({ ...agentSettings, instructions: e.target.value })} rows={4} maxLength={12000} className="mt-1.5 w-full rounded-xl border border-app-gray-200 p-3 text-sm font-normal outline-none focus:border-app-mint" placeholder="Reglas de atención, preguntas frecuentes y límites del agente." /></label>
+            <label className="block text-sm font-semibold text-app-text-primary">Reglas de reservas<textarea value={agentSettings.bookingInstructions} onChange={(e) => setAgentSettings({ ...agentSettings, bookingInstructions: e.target.value })} rows={3} maxLength={8000} className="mt-1.5 w-full rounded-xl border border-app-gray-200 p-3 text-sm font-normal outline-none focus:border-app-mint" placeholder="Datos requeridos antes de confirmar una cita." /></label>
+            <label className="block text-sm font-semibold text-app-text-primary">Mensaje al pasar a recepción<textarea value={agentSettings.handoffMessage} onChange={(e) => setAgentSettings({ ...agentSettings, handoffMessage: e.target.value })} rows={2} maxLength={1000} className="mt-1.5 w-full rounded-xl border border-app-gray-200 p-3 text-sm font-normal outline-none focus:border-app-mint" /></label>
+            <p className="text-xs text-app-peach-700 bg-app-peach-50 rounded-xl p-3">Para preguntas médicas o diagnósticos, el agente debe limitarse a información aprobada por el centro y derivar a un profesional. No reemplaza la valoración clínica.</p>
+          </div>
+          <div className="p-5 border-t border-app-gray-100 bg-app-gray-50/50 flex items-center justify-between gap-3">
+            {agentSettingsMessage && <Badge variant={agentSettingsMessage.includes('No se pudo') ? 'danger' : 'success'}>{agentSettingsMessage}</Badge>}
+            <Button className="ml-auto" onClick={saveAgentSettings} loading={savingAgentSettings} icon={<Save />}>Guardar agente</Button>
+          </div>
+        </Card>
+      )}
     </div>
   );
 };

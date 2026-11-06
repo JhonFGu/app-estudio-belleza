@@ -17,6 +17,7 @@ import { InventoryPage } from './pages/InventoryPage';
 import { UsersPage } from './pages/UsersPage';
 import { CompanySettingsPage } from './pages/CompanySettingsPage';
 import { IntegrationsHubPage } from './pages/IntegrationsHubPage';
+import { WhatsAppSettingsPage } from './pages/WhatsAppSettingsPage';
 import { UserProfileModal } from './components/users/UserProfileModal';
 
 function App() {
@@ -62,6 +63,8 @@ function App() {
         return <CompanySettingsPage />;
       case 'integrations':
         return <IntegrationsHubPage />;
+      case 'whatsapp':
+        return <WhatsAppSettingsPage />;
       case 'schedule':
         return <SchedulePage />;
       case 'history':

@@ -19,6 +19,7 @@ import { Button, IconButton, Badge, PageHeader, Card, Input } from '../component
 const MODULOS_CLINICA = [
   { id: 'citas', label: 'Agenda y Citas' },
   { id: 'clientes', label: 'CRM Clientes' },
+  { id: 'mensajes', label: 'Mensajes' },
   { id: 'pos_caja', label: 'POS / Caja y Pagos' },
   { id: 'tratamientos', label: 'Tratamientos y Servicios' },
   { id: 'colaboradores', label: 'Colaboradores y Horarios' },

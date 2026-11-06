@@ -1,0 +1,225 @@
+openapi: 3.0.3
+info:
+  title: Hub Conversation API (Miesbe server-side client contract)
+  version: 1.0.0
+  description: |
+    Upstream Hub API called only by Miesbe server functions. Configure HUB_BASE_URL
+    separately per environment. The API key is tenant-bound and stored encrypted by Miesbe.
+servers:
+  - url: /
+security:
+  - HubBearer: []
+paths:
+  /api/v1/tenants/{tenantRef}/conversations:
+    get:
+      summary: List conversations for the Hub tenant
+      x-required-scope: conversations:read
+      parameters:
+        - $ref: '#/components/parameters/TenantRef'
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 50 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200':
+          description: Page of conversations
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/ConversationPage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '422': { $ref: '#/components/responses/InvalidRequest' }
+  /api/v1/tenants/{tenantRef}/conversations/{conversationId}/messages:
+    get:
+      summary: Read conversation history
+      x-required-scope: conversations:read
+      parameters:
+        - $ref: '#/components/parameters/TenantRef'
+        - $ref: '#/components/parameters/ConversationId'
+        - in: query
+          name: limit
+          schema: { type: integer, minimum: 1, maximum: 100, default: 100 }
+        - in: query
+          name: cursor
+          schema: { type: string }
+      responses:
+        '200':
+          description: Chronological message page
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/MessagePage' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '422': { $ref: '#/components/responses/InvalidRequest' }
+    post:
+      summary: Send a human message during active takeover
+      x-required-scope: messages:write
+      parameters:
+        - $ref: '#/components/parameters/TenantRef'
+        - $ref: '#/components/parameters/ConversationId'
+        - in: header
+          name: Idempotency-Key
+          required: true
+          schema: { type: string, minLength: 8 }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required: [content]
+              properties:
+                content: { type: string, minLength: 1, maxLength: 4000 }
+                senderId: { type: string }
+                senderName: { type: string }
+      responses:
+        '200':
+          description: Idempotent result for a previously accepted request
+          content: { application/json: { schema: { $ref: '#/components/schemas/SendMessageResult' } } }
+        '202':
+          description: Accepted by Evolution; sent does not mean delivered/read by WhatsApp
+          content: { application/json: { schema: { $ref: '#/components/schemas/SendMessageResult' } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Takeover is not active or recipient unavailable }
+        '422': { $ref: '#/components/responses/InvalidRequest' }
+        '502':
+          description: Evolution definitively rejected delivery
+          content: { application/json: { schema: { $ref: '#/components/schemas/FailedMessageResult' } } }
+  /api/v1/tenants/{tenantRef}/conversations/{conversationId}/takeover:
+    post:
+      summary: Start human takeover and pause the agent
+      x-required-scope: takeover:manage
+      parameters:
+        - $ref: '#/components/parameters/TenantRef'
+        - $ref: '#/components/parameters/ConversationId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason: { type: string }
+                assignedTo: { type: string, nullable: true }
+      responses:
+        '200': { description: 'Already taken over; no duplicate transition', content: { application/json: { schema: { $ref: '#/components/schemas/TakeoverResult' } } } }
+        '201': { description: 'Takeover started; bot is paused', content: { application/json: { schema: { $ref: '#/components/schemas/TakeoverResult' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409': { description: Conversation is closed/resolved }
+    delete:
+      summary: Release takeover and resume the agent
+      x-required-scope: takeover:manage
+      parameters:
+        - $ref: '#/components/parameters/TenantRef'
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200': { description: 'Takeover released or already released', content: { application/json: { schema: { $ref: '#/components/schemas/ReleaseResult' } } } }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+  /api/v1/tenants/{tenantRef}/conversations/{conversationId}:
+    delete:
+      summary: Redact and delete a conversation
+      x-required-scope: conversations:delete
+      parameters:
+        - $ref: '#/components/parameters/TenantRef'
+        - $ref: '#/components/parameters/ConversationId'
+      responses:
+        '200': { description: 'Conversation redacted; conversation.deleted event is emitted' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+components:
+  securitySchemes:
+    HubBearer: { type: http, scheme: bearer, bearerFormat: API key }
+  parameters:
+    TenantRef: { in: path, name: tenantRef, required: true, description: 'Hub tenant UUID stored by Miesbe; Hub also accepts its slug', schema: { type: string, format: uuid } }
+    ConversationId: { in: path, name: conversationId, required: true, schema: { type: string, format: uuid } }
+  responses:
+    Unauthorized: { description: Unauthorized, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    Forbidden: { description: 'Invalid API key/scope or tenant mismatch', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    NotFound: { description: Conversation not found, content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+    InvalidRequest: { description: 'Invalid request/cursor/UUID/idempotency key', content: { application/json: { schema: { $ref: '#/components/schemas/Error' } } } }
+  schemas:
+    PageInfo:
+      type: object
+      required: [limit, hasMore, nextCursor]
+      properties:
+        limit: { type: integer }
+        hasMore: { type: boolean }
+        nextCursor: { type: string, nullable: true }
+    Contact:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        displayName: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+    Conversation:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [bot_active, human_active, closed, resolved] }
+        createdAt: { type: string, format: date-time }
+        updatedAt: { type: string, format: date-time }
+        lastMessageAt: { type: string, format: date-time, nullable: true }
+        lastMessage: { type: string, nullable: true }
+        lastMessageDirection: { type: string, enum: [inbound, outbound], nullable: true }
+        contact: { $ref: '#/components/schemas/Contact' }
+    ConversationPage:
+      type: object
+      properties:
+        conversations: { type: array, items: { $ref: '#/components/schemas/Conversation' } }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    Message:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        providerMessageId: { type: string, nullable: true }
+        direction: { type: string, enum: [inbound, outbound] }
+        authorType: { type: string }
+        authorId: { type: string, nullable: true }
+        content: { type: string, nullable: true }
+        status: { type: string, enum: [received, accepted, sent, failed, unknown] }
+        createdAt: { type: string, format: date-time }
+    MessagePage:
+      type: object
+      properties:
+        messages: { type: array, items: { $ref: '#/components/schemas/Message' } }
+        page: { $ref: '#/components/schemas/PageInfo' }
+    SendMessageResult:
+      type: object
+      properties:
+        messageId: { type: string, format: uuid }
+        status: { type: string, enum: [accepted] }
+        delivery: { type: string, enum: [sent, unknown] }
+        providerMessageId: { type: string, nullable: true }
+    FailedMessageResult:
+      type: object
+      properties:
+        messageId: { type: string, format: uuid }
+        status: { type: string, enum: [failed] }
+        delivery: { type: string, enum: [failed] }
+        error: { type: string }
+    TakeoverResult:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [human_active] }
+        takeoverId: { type: string, format: uuid }
+        alreadyActive: { type: boolean }
+    ReleaseResult:
+      type: object
+      properties:
+        id: { type: string, format: uuid }
+        status: { type: string, enum: [bot_active] }
+        alreadyReleased: { type: boolean }
+    Error:
+      type: object
+      properties: { error: { type: string } }

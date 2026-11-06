@@ -46,7 +46,7 @@ export const IntegrationsHubPage = () => {
       if (!hookResponse.ok) throw new Error('No fue posible cargar los webhooks.');
       setWebhooks(await hookResponse.json());
     } catch (error: any) {
-      setLoadError(error.message || 'No fue posible cargar la configuración del Hub.');
+      setLoadError(error.message || 'No fue posible cargar las integraciones API.');
     } finally { setLoading(false); }
   };
 
@@ -55,7 +55,7 @@ export const IntegrationsHubPage = () => {
   const createKey = async () => {
     setCreating(true);
     try {
-      const response = await fetch('/api/integration-admin', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Hub de agentes' }) });
+      const response = await fetch('/api/integration-admin', { method: 'POST', headers: { ...headers, 'Content-Type': 'application/json' }, body: JSON.stringify({ name: 'Integración API externa' }) });
       if (response.ok) {
         const result = await response.json();
         setNewKey(result.apiKey);
@@ -65,7 +65,7 @@ export const IntegrationsHubPage = () => {
   };
 
   const revokeKey = async (keyId: string) => {
-    if (!confirm('¿Revocar esta API key? El Hub dejará de autenticarse inmediatamente.')) return;
+    if (!confirm('¿Revocar esta API key? La integración que la utiliza dejará de autenticarse inmediatamente.')) return;
     const response = await fetch(`/api/integration-admin?id=${keyId}`, { method: 'DELETE', headers });
     if (response.ok) await loadKeys();
   };
@@ -87,24 +87,24 @@ export const IntegrationsHubPage = () => {
 
   return (
     <div className="space-y-6">
-      <PageHeader icon={<Plug />} title="Hub de agentes" subtitle="Conecta tu centro con automatizaciones de WhatsApp e inteligencia artificial." />
+      <PageHeader icon={<Plug />} title="Integraciones API" subtitle="Administra accesos de servicios externos a los datos y operaciones autorizados de este centro." />
       {loadError && <Card className="border-app-pink-200 bg-app-pink-50"><p className="text-sm font-bold text-app-pink">{loadError}</p></Card>}
       <Card className="border-app-mint-200 bg-app-mint-50/40">
         <div className="flex items-start gap-4">
           <div className="w-11 h-11 rounded-2xl bg-app-mint text-white flex items-center justify-center flex-shrink-0"><Plug className="w-5 h-5" /></div>
-          <div><h2 className="font-extrabold text-app-text-primary">Integración lista para agendamiento</h2><p className="text-sm text-app-text-secondary mt-1">El Hub puede consultar servicios, profesionales, clientes y disponibilidad, además de crear, cancelar y reprogramar citas.</p><p className="text-xs text-app-text-secondary mt-3">Endpoint: <code className="font-bold">/api/v1</code> · Autenticación: API key</p></div>
+          <div><h2 className="font-extrabold text-app-text-primary">API Miesbe para integraciones</h2><p className="text-sm text-app-text-secondary mt-1">Los servicios autorizados pueden consultar catálogo, clientes, profesionales y disponibilidad, además de crear, cancelar y reprogramar citas.</p><p className="text-xs text-app-text-secondary mt-3">Endpoint: <code className="font-bold">/api/v1</code> · Autenticación: API key</p></div>
         </div>
       </Card>
 
       {newKey && <Card className="border-app-peach-300 bg-app-peach-50"><div className="flex gap-3"><ShieldAlert className="w-5 h-5 text-app-peach-600 flex-shrink-0" /><div className="flex-1"><h3 className="font-extrabold text-app-text-primary">Copia esta clave ahora</h3><p className="text-xs text-app-text-secondary mt-1">Por seguridad no volverá a mostrarse completa.</p><div className="mt-3 flex gap-2"><code className="flex-1 bg-white rounded-xl border border-app-gray-200 px-3 py-2 text-xs break-all">{newKey}</code><Button size="sm" variant="secondary" icon={copied ? <Check /> : <Copy />} onClick={copyKey}>{copied ? 'Copiada' : 'Copiar'}</Button></div></div></div></Card>}
 
-      <Card padding={false}><CardHeader icon={<KeyRound />} title="API keys" subtitle="Las claves permiten al Hub operar sobre este centro." actions={<Button size="sm" icon={<KeyRound />} loading={creating} onClick={createKey}>Crear API key</Button>} />
-        {loading ? <div className="p-6 text-sm text-app-text-secondary">Cargando claves...</div> : keys.length === 0 ? <div className="p-8 text-center"><KeyRound className="w-8 h-8 mx-auto text-app-gray-400" /><p className="font-bold mt-3">No hay claves configuradas</p><p className="text-sm text-app-text-secondary mt-1">Crea una para conectar el Hub.</p></div> : <div className="divide-y divide-app-gray-100">{keys.map((key) => <div key={key.id} className="p-5 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-app-gray-100 flex items-center justify-center"><KeyRound className="w-4 h-4 text-app-gray-600" /></div><div><p className="font-bold text-sm">{key.name}</p><p className="text-xs text-app-text-secondary font-mono">{key.keyPrefix}••••••••</p><div className="flex gap-2 mt-1"><Badge variant={key.active ? 'success' : 'neutral'}>{key.active ? 'Activa' : 'Revocada'}</Badge><span className="text-[11px] text-app-text-secondary">Creada {new Date(key.createdAt).toLocaleDateString()}</span></div></div></div>{key.active && <Button variant="danger" size="sm" icon={<Trash2 />} onClick={() => revokeKey(key.id)}>Revocar</Button>}</div>)}</div>}
+      <Card padding={false}><CardHeader icon={<KeyRound />} title="API keys" subtitle="Las claves permiten a una integración externa acceder a este centro dentro de sus permisos." actions={<Button size="sm" icon={<KeyRound />} loading={creating} onClick={createKey}>Crear API key</Button>} />
+      {loading ? <div className="p-6 text-sm text-app-text-secondary">Cargando claves...</div> : keys.length === 0 ? <div className="p-8 text-center"><KeyRound className="w-8 h-8 mx-auto text-app-gray-400" /><p className="font-bold mt-3">No hay claves configuradas</p><p className="text-sm text-app-text-secondary mt-1">Crea una para conectar un sistema externo autorizado.</p></div> : <div className="divide-y divide-app-gray-100">{keys.map((key) => <div key={key.id} className="p-5 flex items-center justify-between gap-4"><div className="flex items-center gap-3"><div className="w-9 h-9 rounded-xl bg-app-gray-100 flex items-center justify-center"><KeyRound className="w-4 h-4 text-app-gray-600" /></div><div><p className="font-bold text-sm">{key.name}</p><p className="text-xs text-app-text-secondary font-mono">{key.keyPrefix}••••••••</p><div className="flex gap-2 mt-1"><Badge variant={key.active ? 'success' : 'neutral'}>{key.active ? 'Activa' : 'Revocada'}</Badge><span className="text-[11px] text-app-text-secondary">Creada {new Date(key.createdAt).toLocaleDateString()}</span></div></div></div>{key.active && <Button variant="danger" size="sm" icon={<Trash2 />} onClick={() => revokeKey(key.id)}>Revocar</Button>}</div>)}</div>}
       </Card>
 
-      <Card padding={false}><CardHeader icon={<RefreshCw />} title="Capacidades y documentación" /><div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"><div className="rounded-xl bg-app-gray-50 p-4"><p className="font-bold">Flujo principal</p><p className="text-app-text-secondary mt-1">Disponibilidad → crear cita → cancelar o reprogramar.</p></div><div className="rounded-xl bg-app-gray-50 p-4"><p className="font-bold">Contrato OpenAPI</p><p className="text-app-text-secondary mt-1">Disponible en <code>openapi.yaml</code> para el equipo del Hub.</p></div></div></Card>
-      <Card padding={false}><CardHeader icon={<RefreshCw />} title="Webhooks" subtitle="Recibe eventos de citas en el Hub." />
-        <div className="p-5 space-y-4"><div className="flex flex-col sm:flex-row gap-2"><input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://hub.example.com/webhooks" className="flex-1 rounded-xl border border-app-gray-200 px-3 py-2 text-sm" /><Button size="sm" onClick={createWebhook}>Agregar webhook</Button></div>
+      <Card padding={false}><CardHeader icon={<RefreshCw />} title="Capacidades y documentación" /><div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-3 text-sm"><div className="rounded-xl bg-app-gray-50 p-4"><p className="font-bold">Flujo de agenda</p><p className="text-app-text-secondary mt-1">Disponibilidad → crear cita → cancelar o reprogramar.</p></div><div className="rounded-xl bg-app-gray-50 p-4"><p className="font-bold">Contrato OpenAPI</p><p className="text-app-text-secondary mt-1">Disponible en <code>openapi.yaml</code> para integraciones.</p></div></div></Card>
+      <Card padding={false}><CardHeader icon={<RefreshCw />} title="Webhooks de negocio" subtitle="Envía eventos de citas a sistemas externos." />
+        <div className="p-5 space-y-4"><div className="flex flex-col sm:flex-row gap-2"><input value={webhookUrl} onChange={(e) => setWebhookUrl(e.target.value)} placeholder="https://integracion.example.com/webhooks" className="flex-1 rounded-xl border border-app-gray-200 px-3 py-2 text-sm" /><Button size="sm" onClick={createWebhook}>Agregar webhook</Button></div>
           {webhookSecret && <div className="rounded-xl bg-app-peach-50 border border-app-peach-200 p-3 text-xs"><b>Secreto, mostrar solo una vez:</b> <code className="break-all">{webhookSecret}</code></div>}
           {webhooks.map((hook) => <div key={hook.id} className="flex items-center justify-between gap-3 border-t border-app-gray-100 pt-3"><div><p className="text-sm font-bold break-all">{hook.url}</p><p className="text-xs text-app-text-secondary">{hook.events.join(', ')}</p></div><Button size="sm" variant="danger" onClick={() => revokeWebhook(hook.id)}>Desactivar</Button></div>)}
         </div>

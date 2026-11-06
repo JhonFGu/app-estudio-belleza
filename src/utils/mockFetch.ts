@@ -48,7 +48,6 @@ export function setupMockFetch() {
     const tenantId = init?.headers ? (init.headers as any)['x-tenant-id'] : null;
     const method = init?.method || 'GET';
     const queryId = parsedUrl.searchParams.get('id');
-    const queryClientId = parsedUrl.searchParams.get('clientId');
     const queryCollabId = parsedUrl.searchParams.get('collaboratorId');
     const queryAppointmentId = parsedUrl.searchParams.get('appointmentId');
 
@@ -775,35 +774,23 @@ export function setupMockFetch() {
         }
       }
 
-      // 7. MESSAGES
-      if (path === '/api/messages') {
-        if (!tenantId) return createMockResponse({ error: 'Missing tenant header' }, 400);
-        let allMsgs = getTable('messages');
-
+      if (path === '/api/hub/inbox') {
         if (method === 'GET') {
-          if (queryClientId) {
-            const list = allMsgs.filter((m: any) => m.clientId === queryClientId && m.tenantId === tenantId);
-            return createMockResponse(list, 200);
-          }
-          const list = allMsgs.filter((m: any) => m.tenantId === tenantId);
-          return createMockResponse(list, 200);
+          const sessionTenantId = JSON.parse(localStorage.getItem('aura_session') || '{}').tenantId;
+          const inboxTenantId = tenantId || sessionTenantId;
+          const conversations = getTable('hub_conversations').filter((c: any) => c.tenantId === inboxTenantId && !c.deletedAt);
+          const conversationId = parsedUrl.searchParams.get('conversationId');
+          if (!conversationId) return createMockResponse({ conversations, page: { limit: 50, hasMore: false, nextCursor: null }, source: 'projection', stale: false }, 200);
+          const conversation = conversations.find((c: any) => c.hubConversationId === conversationId);
+          if (!conversation) return createMockResponse({ error: { code: 'CONVERSATION_NOT_FOUND', message: 'Conversación no encontrada.' } }, 404);
+          return createMockResponse({ conversation, messages: getTable('hub_conversation_messages').filter((m: any) => m.conversationId === conversation.id && !m.redactedAt), page: null, source: 'projection', stale: true }, 200);
         }
+        return createMockResponse({ error: { code: 'HUB_NOT_CONFIGURED', message: 'Configura Hub para habilitar respuestas y takeover.' } }, 503);
+      }
 
-        if (method === 'POST') {
-          const newMsg = {
-            id: `msg-${Date.now()}`,
-            tenantId,
-            clientId: bodyData.clientId,
-            direction: bodyData.direction,
-            content: bodyData.content,
-            channel: bodyData.channel || 'whatsapp',
-            status: bodyData.status || 'sent',
-            createdAt: new Date().toISOString()
-          };
-          allMsgs.push(newMsg);
-          setTable('messages', allMsgs);
-          return createMockResponse(newMsg, 201);
-        }
+      // 7. MESSAGES (legacy local message store retired)
+      if (path === '/api/messages') {
+        return createMockResponse({ error: 'Local message persistence is retired. Use the Hub inbox projection.', code: 'LEGACY_MESSAGES_RETIRED' }, 410);
       }
 
       // 8. SCHEDULES

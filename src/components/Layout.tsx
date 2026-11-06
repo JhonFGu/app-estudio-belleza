@@ -99,7 +99,8 @@ export const Layout: React.FC<LayoutProps> = ({ children }) => {
     { id: 'finance', name: 'Finanzas', icon: DollarSign },
     { id: 'users', name: 'Usuarios y Accesos', icon: ShieldCheck },
     { id: 'company', name: 'Configuración', icon: Building2 },
-    { id: 'integrations', name: 'Hub de agentes', icon: Plug },
+    { id: 'whatsapp', name: 'WhatsApp y Agente IA', icon: MessageSquare },
+    { id: 'integrations', name: 'Integraciones API', icon: Plug },
   ];
 
   // Filtrar menú visible estrictamente según el usuario actual (rol + matriz de permisos)

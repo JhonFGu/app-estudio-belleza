@@ -1,5 +1,5 @@
-import { pgTable, uuid, text, timestamp, boolean, decimal, integer, index, jsonb, uniqueIndex } from 'drizzle-orm/pg-core';
-import { relations } from 'drizzle-orm';
+import { pgTable, uuid, text, timestamp, boolean, decimal, integer, index, jsonb, uniqueIndex, check } from 'drizzle-orm/pg-core';
+import { relations, sql } from 'drizzle-orm';
 
 // 1. Tenants (Centros de Belleza / Inquilinos)
 export const tenants = pgTable('tenants', {
@@ -58,6 +58,11 @@ export const tenantsRelations = relations(tenants, ({ many }) => ({
   loyaltyPoints: many(loyaltyPoints),
   loyaltyRewards: many(loyaltyRewards),
   clientActivities: many(clientActivityLog),
+  whatsappInstances: many(whatsappInstances),
+  whatsappConversations: many(whatsappConversations),
+  whatsappMessages: many(whatsappMessages),
+  whatsappQuotes: many(whatsappQuotes),
+  whatsappAgentSettings: many(whatsappAgentSettings),
 }));
 
 // 2. Users (Usuarios de la App - Credenciales y Roles)
@@ -76,7 +81,7 @@ export const users = pgTable('users', {
   tenantIdx: index('users_tenant_idx').on(table.tenantId),
 }));
 
-export const usersRelations = relations(users, ({ one, many }) => ({
+export const usersRelations = relations(users, ({ one }) => ({
   tenant: one(tenants, {
     fields: [users.tenantId],
     references: [tenants.id],
@@ -146,6 +151,8 @@ export const clientsRelations = relations(clients, ({ one, many }) => ({
   messages: many(messages),
   loyaltyPoints: many(loyaltyPoints),
   activities: many(clientActivityLog),
+  whatsappConversations: many(whatsappConversations),
+  whatsappQuotes: many(whatsappQuotes),
 }));
 
 // 5. Services (Tratamientos / Servicios)
@@ -187,6 +194,7 @@ export const appointments = pgTable('appointments', {
 }, (table) => ({
   tenantIdx: index('appointments_tenant_idx').on(table.tenantId),
   externalIdx: index('appointments_external_idx').on(table.tenantId, table.externalId),
+  whatsappQuoteExternalUnique: uniqueIndex('appointments_whatsapp_quote_external_unique').on(table.tenantId, table.externalId).where(sql`${table.externalId} LIKE 'whatsapp_quote:%'`),
   timeRangeIdx: index('appointments_time_range_idx').on(table.tenantId, table.startTime, table.endTime),
 }));
 
@@ -583,6 +591,150 @@ export const messagesRelations = relations(messages, ({ one }) => ({
     fields: [messages.clientId],
     references: [clients.id],
   }),
+}));
+
+export type WhatsAppQuoteItemSnapshot = {
+  itemType: 'service' | 'product';
+  itemId: string;
+  name: string;
+  quantity: number;
+  unitPrice: string;
+  totalPrice: string;
+  durationMinutes?: number;
+};
+
+// Inbox nativo: Miesbe almacena el estado comercial y los mensajes; n8n orquesta IA/Evolution.
+export const whatsappInstances = pgTable('whatsapp_instances', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  evolutionName: text('evolution_name').notNull().unique(),
+  label: text('label').notNull(),
+  phoneNumber: text('phone_number'),
+  active: boolean('active').default(true).notNull(),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({ tenantActiveIdx: index('whatsapp_instances_tenant_active_idx').on(table.tenantId, table.active) }));
+
+export const whatsappConversations = pgTable('whatsapp_conversations', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  instanceId: uuid('instance_id').references(() => whatsappInstances.id, { onDelete: 'restrict' }).notNull(),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'restrict' }).notNull(),
+  remoteJid: text('remote_jid').notNull(),
+  phoneNumber: text('phone_number').notNull(),
+  displayName: text('display_name'),
+  clientNameConfirmed: boolean('client_name_confirmed').default(false).notNull(),
+  status: text('status').default('open').notNull(),
+  handlingMode: text('handling_mode').default('bot').notNull(),
+  assignedUserId: uuid('assigned_user_id').references(() => users.id, { onDelete: 'set null' }),
+  handoffReason: text('handoff_reason'),
+  lastMessageAt: timestamp('last_message_at'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+}, (table) => ({
+  instanceRemoteUnique: uniqueIndex('whatsapp_conversations_instance_remote_unique').on(table.instanceId, table.remoteJid),
+  tenantActivityIdx: index('whatsapp_conversations_tenant_activity_idx').on(table.tenantId, table.lastMessageAt.desc()),
+  tenantClientIdx: index('whatsapp_conversations_tenant_client_idx').on(table.tenantId, table.clientId),
+  tenantAssignmentIdx: index('whatsapp_conversations_tenant_assignment_idx').on(table.tenantId, table.handlingMode, table.assignedUserId),
+  statusCheck: check('whatsapp_conversations_status_check', sql`${table.status} IN ('open', 'closed')`),
+  handlingModeCheck: check('whatsapp_conversations_handling_mode_check', sql`${table.handlingMode} IN ('bot', 'human')`),
+}));
+
+export const whatsappMessages = pgTable('whatsapp_messages', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  instanceId: uuid('instance_id').references(() => whatsappInstances.id, { onDelete: 'restrict' }).notNull(),
+  conversationId: uuid('conversation_id').references(() => whatsappConversations.id, { onDelete: 'cascade' }).notNull(),
+  direction: text('direction').notNull(),
+  authorType: text('author_type').notNull(),
+  authorUserId: uuid('author_user_id').references(() => users.id, { onDelete: 'set null' }),
+  providerMessageId: text('provider_message_id'),
+  idempotencyKey: text('idempotency_key'),
+  content: text('content').notNull().default(''),
+  messageType: text('message_type').default('text').notNull(),
+  mediaMimeType: text('media_mime_type'),
+  deliveryStatus: text('delivery_status').default('received').notNull(),
+  metadata: jsonb('metadata').$type<Record<string, unknown>>().notNull().default({}),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  sentAt: timestamp('sent_at'),
+}, (table) => ({
+  tenantProviderUnique: uniqueIndex('whatsapp_messages_tenant_instance_provider_unique').on(table.tenantId, table.instanceId, table.providerMessageId),
+  tenantIdempotencyUnique: uniqueIndex('whatsapp_messages_tenant_idempotency_unique').on(table.tenantId, table.idempotencyKey),
+  conversationCreatedIdx: index('whatsapp_messages_conversation_created_idx').on(table.conversationId, table.createdAt),
+  directionCheck: check('whatsapp_messages_direction_check', sql`${table.direction} IN ('inbound', 'outbound')`),
+  authorTypeCheck: check('whatsapp_messages_author_type_check', sql`${table.authorType} IN ('client', 'agent', 'user', 'system')`),
+  deliveryStatusCheck: check('whatsapp_messages_delivery_status_check', sql`${table.deliveryStatus} IN ('pending', 'sent', 'delivered', 'read', 'failed', 'unknown', 'received')`),
+}));
+
+export const whatsappQuotes = pgTable('whatsapp_quotes', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull(),
+  conversationId: uuid('conversation_id').references(() => whatsappConversations.id, { onDelete: 'cascade' }).notNull(),
+  clientId: uuid('client_id').references(() => clients.id, { onDelete: 'restrict' }).notNull(),
+  status: text('status').default('draft').notNull(),
+  currency: text('currency').notNull().default('COP'),
+  subtotal: decimal('subtotal', { precision: 12, scale: 2 }).notNull(),
+  total: decimal('total', { precision: 12, scale: 2 }).notNull(),
+  itemSnapshot: jsonb('item_snapshot').$type<WhatsAppQuoteItemSnapshot[]>().notNull(),
+  notes: text('notes'),
+  appointmentId: uuid('appointment_id').references(() => appointments.id, { onDelete: 'set null' }),
+  sentMessageId: uuid('sent_message_id').references(() => whatsappMessages.id, { onDelete: 'set null' }),
+  acceptedMessageId: uuid('accepted_message_id').references(() => whatsappMessages.id, { onDelete: 'set null' }),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  sentAt: timestamp('sent_at'),
+  acceptedAt: timestamp('accepted_at'),
+  expiresAt: timestamp('expires_at'),
+}, (table) => ({
+  tenantConversationIdx: index('whatsapp_quotes_tenant_conversation_idx').on(table.tenantId, table.conversationId, table.createdAt.desc()),
+  statusCheck: check('whatsapp_quotes_status_check', sql`${table.status} IN ('draft', 'sent', 'accepted', 'rejected', 'expired')`),
+}));
+
+export const whatsappAgentSettings = pgTable('whatsapp_agent_settings', {
+  id: uuid('id').defaultRandom().primaryKey(),
+  tenantId: uuid('tenant_id').references(() => tenants.id, { onDelete: 'cascade' }).notNull().unique(),
+  enabled: boolean('enabled').default(true).notNull(),
+  tone: text('tone').default('amable y profesional').notNull(),
+  greeting: text('greeting'),
+  businessContext: text('business_context'),
+  instructions: text('instructions'),
+  bookingInstructions: text('booking_instructions'),
+  handoffMessage: text('handoff_message'),
+  updatedByUserId: uuid('updated_by_user_id').references(() => users.id, { onDelete: 'set null' }),
+  updatedAt: timestamp('updated_at').defaultNow().notNull(),
+});
+
+export const whatsappInstancesRelations = relations(whatsappInstances, ({ one, many }) => ({
+  tenant: one(tenants, { fields: [whatsappInstances.tenantId], references: [tenants.id] }),
+  conversations: many(whatsappConversations),
+  messages: many(whatsappMessages),
+}));
+
+export const whatsappConversationsRelations = relations(whatsappConversations, ({ one, many }) => ({
+  tenant: one(tenants, { fields: [whatsappConversations.tenantId], references: [tenants.id] }),
+  instance: one(whatsappInstances, { fields: [whatsappConversations.instanceId], references: [whatsappInstances.id] }),
+  client: one(clients, { fields: [whatsappConversations.clientId], references: [clients.id] }),
+  assignedUser: one(users, { fields: [whatsappConversations.assignedUserId], references: [users.id] }),
+  messages: many(whatsappMessages),
+  quotes: many(whatsappQuotes),
+}));
+
+export const whatsappMessagesRelations = relations(whatsappMessages, ({ one }) => ({
+  tenant: one(tenants, { fields: [whatsappMessages.tenantId], references: [tenants.id] }),
+  instance: one(whatsappInstances, { fields: [whatsappMessages.instanceId], references: [whatsappInstances.id] }),
+  conversation: one(whatsappConversations, { fields: [whatsappMessages.conversationId], references: [whatsappConversations.id] }),
+  author: one(users, { fields: [whatsappMessages.authorUserId], references: [users.id] }),
+}));
+
+export const whatsappQuotesRelations = relations(whatsappQuotes, ({ one }) => ({
+  tenant: one(tenants, { fields: [whatsappQuotes.tenantId], references: [tenants.id] }),
+  conversation: one(whatsappConversations, { fields: [whatsappQuotes.conversationId], references: [whatsappConversations.id] }),
+  client: one(clients, { fields: [whatsappQuotes.clientId], references: [clients.id] }),
+  appointment: one(appointments, { fields: [whatsappQuotes.appointmentId], references: [appointments.id] }),
+}));
+
+export const whatsappAgentSettingsRelations = relations(whatsappAgentSettings, ({ one }) => ({
+  tenant: one(tenants, { fields: [whatsappAgentSettings.tenantId], references: [tenants.id] }),
+  updatedBy: one(users, { fields: [whatsappAgentSettings.updatedByUserId], references: [users.id] }),
 }));
 
 // 11. Accounts Payable (Cuentas por pagar)

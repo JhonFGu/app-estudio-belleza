@@ -1,6 +1,5 @@
 import React, { useEffect, useState } from 'react';
 import { useAppStore } from '../store/useAppStore';
-import { formatCOP } from '../utils/format';
 import {
   Search,
   Plus,
@@ -9,13 +8,10 @@ import {
   Mail,
   FileText,
   Calendar,
-  Send,
+  MessageSquare,
   X,
-  Sparkles,
-  ChevronDown,
   Eye,
   ArrowLeft,
-  MoreVertical,
   Filter,
   Thermometer,
   Heart,
@@ -41,7 +37,6 @@ export const CRMPage: React.FC = () => {
   const [services, setServices] = useState<any[]>([]);
   const [collaborators, setCollaborators] = useState<any[]>([]);
   const [selectedClient, setSelectedClient] = useState<any>(null);
-  const [chatHistory, setChatHistory] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
 
   // View state: 'list' or 'detail'
@@ -96,8 +91,6 @@ export const CRMPage: React.FC = () => {
   const [formNotes, setFormNotes] = useState('');
 
   // Chat input
-  const [chatInput, setChatInput] = useState('');
-  const [sendingMsg, setSendingMsg] = useState(false);
 
   // Loyalty state
   const [loyaltyData, setLoyaltyData] = useState<any>(null);
@@ -154,15 +147,13 @@ export const CRMPage: React.FC = () => {
       try {
         const headers = { 'x-tenant-id': currentTenant.id };
 
-        const [chatRes, loyaltyRes, configRes, rewardsRes, activityRes] = await Promise.all([
-          fetch(`/api/messages?clientId=${selectedClient.id}`, { headers }),
+        const [loyaltyRes, configRes, rewardsRes, activityRes] = await Promise.all([
           fetch(`/api/loyalty?clientId=${selectedClient.id}`, { headers }),
           fetch('/api/loyalty?config=true', { headers }),
           fetch('/api/loyalty?rewards=true', { headers }),
           fetch(`/api/client-activity?clientId=${selectedClient.id}`, { headers }),
         ]);
 
-        if (chatRes.ok) setChatHistory(await chatRes.json());
         if (loyaltyRes.ok) setLoyaltyData(await loyaltyRes.json());
         if (configRes.ok) setLoyaltyConfig(await configRes.json());
         if (rewardsRes.ok) setRewards(await rewardsRes.json());
@@ -286,70 +277,6 @@ export const CRMPage: React.FC = () => {
     } catch (err) {
       console.error(err);
     }
-  };
-
-  const handleSendMessage = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!chatInput.trim() || !selectedClient || !currentTenant) return;
-    
-    setSendingMsg(true);
-    const content = chatInput;
-    setChatInput('');
-
-    try {
-      const response = await fetch('/api/messages', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'x-tenant-id': currentTenant.id
-        },
-        body: JSON.stringify({
-          clientId: selectedClient.id,
-          direction: 'outbound',
-          content,
-          channel: 'whatsapp'
-        })
-      });
-
-      if (response.ok) {
-        const newMsg = await response.json();
-        setMessagesState((prev: any[]) => [...prev, newMsg]);
-
-        setTimeout(async () => {
-          try {
-            await fetch('/api/messages', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'x-tenant-id': currentTenant.id
-              },
-              body: JSON.stringify({
-                clientId: selectedClient.id,
-                direction: 'inbound',
-                content: "¡Perfecto! Nos vemos pronto en la cita.",
-                channel: 'whatsapp',
-                status: 'read'
-              })
-            });
-            const refreshChatRes = await fetch(`/api/messages?clientId=${selectedClient.id}`, {
-              headers: { 'x-tenant-id': currentTenant.id }
-            });
-            if (refreshChatRes.ok) {
-              setMessagesState(await refreshChatRes.json());
-            }
-          } catch (error) {}
-        }, 1500);
-      }
-    } catch (err) {
-      console.error(err);
-    } finally {
-      setSendingMsg(false);
-    }
-  };
-
-  // Safe setter helper for chat messages
-  const setMessagesState = (updater: any) => {
-    setChatHistory(updater);
   };
 
   const getParsedMedicalData = (client: any) => {
@@ -971,59 +898,11 @@ export const CRMPage: React.FC = () => {
             )}
 
             {activeDetailTab === 'chat' && (
-              <div className="bg-white border border-app-gray-200 rounded-[28px] shadow-sm flex flex-col flex-1 min-h-[460px] overflow-hidden">
-                <div className="p-3 bg-app-gray-50 border-b border-app-gray-100 flex items-center justify-between flex-shrink-0">
-                  <div className="flex items-center gap-2">
-                    <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-650 flex items-center justify-center font-bold text-[10px]">
-                      WA
-                    </div>
-                    <div>
-                      <h5 className="text-xs font-bold text-app-text-primary leading-tight">Chat de WhatsApp</h5>
-                      <span className="text-[10px] text-emerald-650 font-bold">Linea activa con cliente</span>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="flex-1 overflow-y-auto p-4 space-y-3 bg-[#faf9f6]">
-                  {chatHistory.length === 0 ? (
-                    <p className="text-sm text-app-gray-500 italic text-center py-12">No hay mensajes recientes con el cliente.</p>
-                  ) : (
-                    chatHistory.map((msg) => {
-                      const isOutbound = msg.direction === 'outbound';
-                      return (
-                        <div key={msg.id} className={`flex ${isOutbound ? 'justify-end' : 'justify-start'}`}>
-                          <div className={`max-w-[80%] p-3 rounded-2xl text-xs leading-relaxed shadow-xs ${
-                            isOutbound ? 'bg-app-mint text-white rounded-br-none' : 'bg-white border border-app-gray-200 text-app-text-primary rounded-bl-none'
-                          }`}>
-                            <p>{msg.content}</p>
-                            <span className="text-[10px] block text-right mt-1 opacity-70">
-                              {format(new Date(msg.createdAt), 'HH:mm')}
-                            </span>
-                          </div>
-                        </div>
-                      );
-                    })
-                  )}
-                </div>
-
-                <form onSubmit={handleSendMessage} className="p-2.5 border-t border-app-gray-100 flex gap-2 bg-white flex-shrink-0">
-                  <input
-                    type="text"
-                    placeholder="Escribir mensaje por WhatsApp..."
-                    value={chatInput}
-                    onChange={(e) => setChatInput(e.target.value)}
-                    disabled={sendingMsg}
-                    className="flex-1 px-3 py-2 border border-app-gray-200 rounded-xl text-sm bg-transparent outline-none focus:border-app-mint font-medium"
-                  />
-                  <button
-                    type="submit"
-                    disabled={sendingMsg}
-                    className="px-4 py-2 bg-app-mint hover:bg-app-mint-600 text-white rounded-xl shadow-sm font-bold text-sm flex items-center gap-1.5"
-                  >
-                    <Send className="w-4 h-4" />
-                    Enviar
-                  </button>
-                </form>
+              <div className="bg-white border border-app-gray-200 rounded-[28px] shadow-sm flex flex-col flex-1 min-h-[300px] items-center justify-center p-8 text-center">
+                <MessageSquare className="w-9 h-9 text-app-mint mb-3" />
+                <h5 className="font-bold text-app-text-primary">Conversaciones de WhatsApp</h5>
+                <p className="text-sm text-app-gray-500 mt-2 max-w-md">El historial completo y las respuestas se gestionan en Mensajes.</p>
+                <button type="button" onClick={() => setCurrentTab('messages')} className="mt-4 px-4 py-2 rounded-xl bg-app-mint text-white text-sm font-bold">Abrir Mensajes</button>
               </div>
             )}
 
@@ -1921,10 +1800,3 @@ export const CRMPage: React.FC = () => {
     </div>
   );
 };
-
-// Internal icon component for message icon
-const MessageSquareIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-    <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-  </svg>
-);

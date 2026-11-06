@@ -48,7 +48,7 @@ export default async function handler(req: any, res: any) {
       const secret = `miesbe_${randomBytes(32).toString('hex')}`;
       const [created] = await db.insert(integrationApiKeys).values({
         tenantId,
-        name: body.name || 'Hub de agentes',
+        name: body.name || 'Integración API externa',
         keyPrefix: secret.slice(0, 15),
         keyHash: hash(secret),
         scopes: body.scopes || ['services:read', 'professionals:read', 'clients:read', 'clients:write', 'availability:read', 'appointments:write'],
